@@ -1,0 +1,664 @@
+//MACLIB EXEC PGM=IEBUPDTE,PARM=NEW
+//SYSUT1   DD  DUMMY
+//SYSUT2   DD  DSN=<USERID.STRUCT.MACLIB>,DISP=(NEW,CATLG), ......
+//SYSPRINT DD  SYSOUT=*
+//SYSIN  DD    DATA
+./ ADD NAME=$MGBLDEF
+.*   Copyright (C) <2021>  Daniel H. Snyder
+.*   Structured Programming Macros for the IBM High Level Assembler
+.*   Daniel.H.Snyder@protonmail.com
+.*
+.* This program is free software: you can redistribute it and/or modify
+.* it under the terms of the GNU General Public License as published by
+.* the Free Software Foundation, either version 3 of the License, or
+.* any later version.
+.*
+.* This program is distributed in the hope that it will be useful,
+.* but WITHOUT ANY WARRANTY; without even the implied warranty of
+.* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+.* GNU General Public License for more details.
+.*
+.* You should have received a copy of the GNU General Public License
+.* along with this program. See <https://www.gnu.org/licenses/>.
+.*
+         GBLA  &$MLVL,&$MBLATH,&$MBL2,&$Y$NDX,&$MPTR
+         GBLC  &$MTNAME(255),&$MFNAME(255),&$MCVERB(255),&$MEQ1(255)
+         GBLC  &$MEQ2(255),&$EIUSED(255),&$BT,&$BF,&$MNAME
+         GBLC  &$ELSETAG(255),&$CONJ(255),&$MFINI(255)
+         GBLC  &$MLNAME(255),&$MSNAME(255),&$MENAME(255),&$ERROR
+         GBLC  &$ERRSW
+./ ADD NAME=DO
+.*   Copyright (C) <2021>  Daniel H. Snyder
+.*   Structured Programming Macros for the IBM High Level Assembler
+.*   Daniel.H.Snyder@protonmail.com
+.*
+.* This program is free software: you can redistribute it and/or modify
+.* it under the terms of the GNU General Public License as published by
+.* the Free Software Foundation, either version 3 of the License, or
+.* any later version.
+.*
+.* This program is distributed in the hope that it will be useful,
+.* but WITHOUT ANY WARRANTY; without even the implied warranty of
+.* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+.* GNU General Public License for more details.
+.*
+.* You should have received a copy of the GNU General Public License
+.* along with this program. See <https://www.gnu.org/licenses/>.
+.*
+         MACRO
+&NAME    DO    &WHILE=,&UNTIL=,&TEST=BEFORE
+         COPY  $MGBLDEF
+         LCLA  &I,&J
+         LCLC  &X,&Y,&LCLTEST
+&$MLVL   SETA  &$MLVL+1 FOR HOUSEKEEPING
+&$Y$NDX  SETA  &$Y$NDX+1
+&$MLNAME(&$MLVL) SETC '$MDL&$Y$NDX'
+         AIF   ('&NAME' EQ '').SKIP010
+&$MLNAME(&$MLVL) SETC '&NAME'
+.SKIP010 ANOP
+&$MENAME(&$MLVL) SETC '$MDE&$Y$NDX'
+&$MSNAME(&$MLVL) SETC '$MDS&$Y$NDX'
+&LCLTEST SETC  'AFTER'              FIRST ASSUMPTION
+         AIF   ('&TEST' EQ 'AFTER').NEXT030 WAS IT RIGHT?
+&LCLTEST SETC  'BEFORE'             NO - MUST BE BEFORE
+         AIF   ('&TEST' EQ 'BEFORE').NEXT030 WAS IT BEFORE?
+         MNOTE 4,'INVALID VALUE "&TEST" SPECIFIED FOR "TEST=" PARM'
+         MNOTE '"BEFORE" IS ASSUMED'
+.NEXT030 AIF   ('&TEST' NE 'AFTER').NEXT040 SPECIAL BRANCH FOR "AFTER"
+         B     &$MENAME(&$MLVL) EXEC LOOP AT LEAST ONCE
+.NEXT040 AIF   ('&WHILE' NE '').TEST050 GO IF WHILE PARM CODED
+         AIF   ('&UNTIL' EQ '').ERR080 GO IF NEITHER PARM IS CODED
+&Y       SETC  '&UNTIL'
+         AIF   ('&UNTIL'(1,2) NE '((').ERR070   MUST BE '(('
+         AGO   .UNTIL130            PARM MUST BE UNTIL
+.TEST050 AIF   ('&UNTIL' NE '').ERR090 CAN'T HAVE BOTH
+&Y       SETC  '&WHILE'
+         AIF   ('&WHILE'(1,2) NE '((').ERR070   MUST BE '(('
+         AGO   .WHILE100        "WHILE" IT IS
+.ERR070  MNOTE 12,'CONDITIONAL PHRASE MUST BEGIN WITL "(("'
+         MNOTE 'PHRASE IS "&Y"'
+         MNOTE 'MACRO EXPANSION CANCELLED'
+         MEXIT
+.ERR080  MNOTE 12,'EITHER "WHILE" OR "UNTIL" MUST BE SPECIFIED'
+         MNOTE 'MACRO EXPANSION CANCELLED'
+         MEXIT
+.ERR090  MNOTE 12,'"WHILE" AND "UNTIL" MUST NOT BOTH BE SPECIFIED'
+         MNOTE 'MACRO EXPANSION CANCELLED'
+         MEXIT
+.WHILE100 ANOP    *=*=*    &WHILE OPTION WAS SPECIFIED  *=*=*
+&X       SETC  '&$MLNAME(&$MLVL)'
+&$MLVL   SETA  &$MLVL-1 FAKE OUT "IF"
+&X       IF2    &WHILE(1),&WHILE(2),&WHILE(3),&WHILE(4),&WHILE(5),     C
+               &WHILE(6),&WHILE(7),&WHILE(8),&WHILE(9),&WHILE(10),     C
+               &WHILE(11),&WHILE(12),&WHILE(13),&WHILE(14),&WHILE(15), C
+               &WHILE(16),&WHILE(17),&WHILE(18),&WHILE(19),&WHILE(20), C
+               &WHILE(21)
+&$MLVL   SETA  &$MLVL+1
+         AIF   ('&$MFNAME(&$MLVL)' NE '').WHILE110
+&$Y$NDX  SETA  &$Y$NDX+1
+&$MFNAME(&$MLVL) SETC '$FINI&$Y$NDX'
+.WHILE110 ANOP
+         J&$BF &$MFNAME(&$MLVL)
+         AIF   ('&$MTNAME(&$MLVL)' EQ '').CLEAN170
+&Y       SETC  '&$MTNAME(&$MLVL)'
+&Y       DC    0H'0'
+&$MTNAME(&$MLVL) SETC ''
+         AGO   .CLEAN170
+.UNTIL130 ANOP   *=*=*    &UNTIL OPTION WAS SPECIFIED  *=*=*
+&X       SETC  '&$MLNAME(&$MLVL)'
+&$MLVL   SETA  &$MLVL-1 FAKE OUT "IF"
+&X       IF2   &UNTIL(1),&UNTIL(2),&UNTIL(3),&UNTIL(4),&UNTIL(5),      C
+               &UNTIL(6),&UNTIL(7),&UNTIL(8),&UNTIL(9),&UNTIL(10),     C
+               &UNTIL(11),&UNTIL(12),&UNTIL(13),&UNTIL(14),&UNTIL(15), C
+               &UNTIL(16),&UNTIL(17),&UNTIL(18),&UNTIL(19),&UNTIL(20), C
+               &UNTIL(21)
+&$MLVL   SETA  &$MLVL+1
+         AIF   ('&$MTNAME(&$MLVL)' NE '').UNTIL140
+&$Y$NDX  SETA  &$Y$NDX+1
+&$MTNAME(&$MLVL) SETC '$FINI&$Y$NDX'
+.UNTIL140 ANOP
+         B&$BT &$MTNAME(&$MLVL)
+         AIF   ('&$MFNAME(&$MLVL)' EQ '').CLEAN170
+&Y       SETC  '&$MFNAME(&$MLVL)'
+&Y       DC    0H'0'
+&$MFNAME(&$MLVL) SETC ''
+.CLEAN170 AIF   ('&LCLTEST' NE 'AFTER').MEND180
+&X       SETC  '&$MENAME(&$MLVL)'
+&X       DC    0H'0'
+.MEND180 ANOP
+&$MCVERB(&$MLVL) SETC  'DO'
+         MEND
+./ ADD NAME=ELSE
+.*   Copyright (C) <2021>  Daniel H. Snyder
+.*   Structured Programming Macros for the IBM High Level Assembler
+.*   Daniel.H.Snyder@protonmail.com
+.*
+.* This program is free software: you can redistribute it and/or modify
+.* it under the terms of the GNU General Public License as published by
+.* the Free Software Foundation, either version 3 of the License, or
+.* any later version.
+.*
+.* This program is distributed in the hope that it will be useful,
+.* but WITHOUT ANY WARRANTY; without even the implied warranty of
+.* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+.* GNU General Public License for more details.
+.*
+.* You should have received a copy of the GNU General Public License
+.* along with this program. See <https://www.gnu.org/licenses/>.
+.*
+         MACRO
+&NAME    ELSE  ,                   END OF POSITIVE TEST, START OF
+         COPY  $MGBLDEF            . NEGATIVE
+         LCLC  &X,&Y                  SET TO 'IF-FAILED' TAG
+         AIF   (&$MLVL GT 0).OK20
+         MNOTE 8,'"ELSE" INVALID OUTSIDE OF AN "IF" GROUP'
+         MNOTE ' - MACRO GENERATION TERMINATED'
+         MEXIT
+.OK20    AIF   ('&$MCVERB(&$MLVL)' EQ 'IF').OK30
+         AIF   ('&$MCVERB(&$MLVL)' EQ 'ELSEIF').OK30
+         MNOTE 8,'"ELSE" INVALID FOLLOWING "&$MCVERB(&$MLVL)"'
+         MNOTE ' - MACRO GENERATION TERMINATED'
+         MEXIT
+.OK30    AIF   ('&$MFINI(&$MLVL)' NE '').OK40
+&$Y$NDX  SETA  &$Y$NDX+1
+&$MFINI(&$MLVL) SETC '$FINI&$Y$NDX'
+.OK40    J     &$MFINI(&$MLVL)
+&X       SETC  '&$MFNAME(&$MLVL)'
+&X       DC    0H'0'
+&$MFNAME(&$MLVL) SETC ''
+&$MCVERB(&$MLVL) SETC 'ELSE'
+         MEND
+./ ADD NAME=ELSEIF
+.*   Copyright (C) <2021>  Daniel H. Snyder
+.*   Structured Programming Macros for the IBM High Level Assembler
+.*   Daniel.H.Snyder@protonmail.com
+.*
+.* This program is free software: you can redistribute it and/or modify
+.* it under the terms of the GNU General Public License as published by
+.* the Free Software Foundation, either version 3 of the License, or
+.* any later version.
+.*
+.* This program is distributed in the hope that it will be useful,
+.* but WITHOUT ANY WARRANTY; without even the implied warranty of
+.* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+.* GNU General Public License for more details.
+.*
+.* You should have received a copy of the GNU General Public License
+.* along with this program. See <https://www.gnu.org/licenses/>.
+.*
+         MACRO
+&NAME    ELSEIF &EXP
+         COPY  $MGBLDEF
+         LCLC  &X,&Y
+         AIF   (&$MLVL GT 0).OK20
+         MNOTE 8,'"ELSEIF" INVALID OUTSIDE OF AN "IF" GROUP'
+         MNOTE ' - MACRO GENERATION TERMINATED'
+         MEXIT
+.OK20    ANOP
+         AIF   ('&$MCVERB(&$MLVL)' EQ 'IF').OK30
+         AIF   ('&$MCVERB(&$MLVL)' EQ 'ELSEIF').OK30
+         MNOTE 8,'"ELSEIF" INVALID FOLLOWING "&$MCVERB(&$MLVL)"'
+         MNOTE ' - MACRO GENERATION TERMINATED'
+         MEXIT
+.OK30    AIF   ('&$MFINI(&$MLVL)' NE '').OK40
+&$Y$NDX  SETA  &$Y$NDX+1
+&$MFINI(&$MLVL) SETC '$FINI&$Y$NDX'
+.OK40    J     &$MFINI(&$MLVL)
+&X       SETC  '&$MFNAME(&$MLVL)'
+&$MFNAME(&$MLVL) SETC ''
+&$MLVL   SETA  &$MLVL-1          SO 'IF' CAN BUMP IT UP AGAIN
+&X       IF    &SYSLIST(1),&SYSLIST(2),&SYSLIST(3),&SYSLIST(4),        C
+               &SYSLIST(5),&SYSLIST(6),&SYSLIST(7),&SYSLIST(8),        C
+               &SYSLIST(9),&SYSLIST(10),&SYSLIST(11),&SYSLIST(12),     C
+               &SYSLIST(13),&SYSLIST(14),&SYSLIST(15),&SYSLIST(16),    C
+               &SYSLIST(17),&SYSLIST(18),&SYSLIST(19),&SYSLIST(20),    C
+               &SYSLIST(21),&SYSLIST(22),&SYSLIST(23),&SYSLIST(24),    C
+               &SYSLIST(25),&SYSLIST(26),&SYSLIST(27),&SYSLIST(28),    C
+               &SYSLIST(29),&SYSLIST(30),&SYSLIST(31),&SYSLIST(32)
+&$MCVERB(&$MLVL) SETC 'ELSEIF'
+         MEND
+./ ADD NAME=ENDDO
+.*   Copyright (C) <2021>  Daniel H. Snyder
+.*   Structured Programming Macros for the IBM High Level Assembler
+.*   Daniel.H.Snyder@protonmail.com
+.*
+.* This program is free software: you can redistribute it and/or modify
+.* it under the terms of the GNU General Public License as published by
+.* the Free Software Foundation, either version 3 of the License, or
+.* any later version.
+.*
+.* This program is distributed in the hope that it will be useful,
+.* but WITHOUT ANY WARRANTY; without even the implied warranty of
+.* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+.* GNU General Public License for more details.
+.*
+.* You should have received a copy of the GNU General Public License
+.* along with this program. See <https://www.gnu.org/licenses/>.
+.*
+         MACRO
+&NAME    ENDDO , STUB FOR "ENDIF"
+         COPY  $MGBLDEF
+         AIF   (&$MLVL GT 0).OK002
+         MNOTE 8,'"ENDDO" INVALID OUTSIDE OF A "DO" GROUP'
+         MNOTE ' - MACRO GENERATION TERMINATED'
+         MEXIT
+.OK002   ANOP
+         ENDIF ,
+         MEND
+./ ADD NAME=ENDIF
+.*   Copyright (C) <2021>  Daniel H. Snyder
+.*   Structured Programming Macros for the IBM High Level Assembler
+.*   Daniel.H.Snyder@protonmail.com
+.*
+.* This program is free software: you can redistribute it and/or modify
+.* it under the terms of the GNU General Public License as published by
+.* the Free Software Foundation, either version 3 of the License, or
+.* any later version.
+.*
+.* This program is distributed in the hope that it will be useful,
+.* but WITHOUT ANY WARRANTY; without even the implied warranty of
+.* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+.* GNU General Public License for more details.
+.*
+.* You should have received a copy of the GNU General Public License
+.* along with this program. See <https://www.gnu.org/licenses/>.
+.*
+         MACRO
+&NAME    ENDIF &ELSE,&DOGROUP=
+         COPY  $MGBLDEF
+         LCLC  &X,&Y
+         AIF   (&$MLVL GT 0).OK002
+         MNOTE 8,'"ENDIF" INVALID OUTSIDE OF AN "IF" GROUP'
+         MNOTE ' - MACRO GENERATION TERMINATED'
+         MEXIT
+.OK002   ANOP
+&X       SETC  '&$MCVERB(&$MLVL)'
+         AIF   ('&X' EQ 'DO').CONT005
+         AIF   ('&X' EQ 'IF').CONT010
+         AIF   ('&X' EQ 'ELSE').CONT010
+         AIF   ('&X' EQ 'ELSEIF').CONT010
+         MNOTE 4,'"ENDIF" USED TO TERMINATE "&X" GROUP'
+         AGO   .CONT010
+.CONT005 J     &$MLNAME(&$MLVL) GO BACK AND TRY AGAIN
+.CONT010 AIF   ('&$MFNAME(&$MLVL)' EQ '').NEXT015
+&X       SETC  '&$MFNAME(&$MLVL)'
+&X       DC    0H'0'
+&$MFNAME(&$MLVL) SETC ''
+.NEXT015 AIF   ('&$MTNAME(&$MLVL)' EQ '').NEXT020
+&X       SETC  '&$MTNAME(&$MLVL)'
+&X       DC    0H'0'
+&$MTNAME(&$MLVL) SETC ''
+.NEXT020 AIF   ('&$MFINI(&$MLVL)' EQ '').LOOP027
+&X       SETC  '&$MFINI(&$MLVL)'
+&X       DC    0H'0'
+&$MFINI(&$MLVL) SETC ''
+.LOOP027 AIF   (&$MPTR EQ 0).MEND030
+&X       SETC  '&$MEQ1(&$MPTR)'
+&Y       SETC  '&$MEQ2(&$MPTR)'
+         AIF   ('&X' EQ '').SKIP028
+&X       EQU   &Y
+&$MEQ1(&$MPTR) SETC ''
+.SKIP028 ANOP
+&$MEQ2(&$MPTR) SETC ''
+&$MPTR   SETA  &$MPTR-1
+         AGO   .LOOP027
+.MEND030 ANOP
+&$MCVERB(&$MLVL) SETC 'ASTRONOMY'
+&$MLVL   SETA  &$MLVL-1
+         MEND
+./ ADD NAME=IF
+.*   Copyright (C) <2021>  Daniel H. Snyder
+.*   Structured Programming Macros for the IBM High Level Assembler
+.*   Daniel.H.Snyder@protonmail.com
+.*
+.* This program is free software: you can redistribute it and/or modify
+.* it under the terms of the GNU General Public License as published by
+.* the Free Software Foundation, either version 3 of the License, or
+.* any later version.
+.*
+.* This program is distributed in the hope that it will be useful,
+.* but WITHOUT ANY WARRANTY; without even the implied warranty of
+.* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+.* GNU General Public License for more details.
+.*
+.* You should have received a copy of the GNU General Public License
+.* along with this program. See <https://www.gnu.org/licenses/>.
+.*
+         MACRO
+&NAME    IF    &EXP                MULTIPLE OPERANDS VIA &SYSLIST
+         COPY  IFCOPY
+.*
+.* =*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+.*                                                                    *
+.* PREPARE FOR UPCOMING "ELSEIF", "ELSE", AND "ENDIF" STATEMENTS.     *
+.*                                                                    *
+.* =*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+.*
+.FINISH260 AIF   ('&$ERRSW' EQ 'Y').MEND290
+         AIF ('&$MFNAME(&$MLVL)' NE '').FIN270
+&$Y$NDX  SETA  &$Y$NDX+1
+&$MFNAME(&$MLVL) SETC '$NEXT&$Y$NDX'
+.FIN270  ANOP
+         J&$BF &$MFNAME(&$MLVL)    BRANCH IF CC INDICATES FAIL
+         AIF   ('&$MTNAME(&$MLVL)' EQ '').MEND290
+&Y       SETC  '&$MTNAME(&$MLVL)'
+&Y       DC    0H'0'               END RESULT WAS PASS - DO THE EXECUTE
+&$MTNAME(&$MLVL) SETC ''
+.MEND290 ANOP
+&$MCVERB(&$MLVL) SETC 'IF'
+         MEND
+./ ADD NAME=IFCOPY
+.*   Copyright (C) <2021>  Daniel H. Snyder
+.*   Structured Programming Macros for the IBM High Level Assembler
+.*   Daniel.H.Snyder@protonmail.com
+.*
+.* This program is free software: you can redistribute it and/or modify
+.* it under the terms of the GNU General Public License as published by
+.* the Free Software Foundation, either version 3 of the License, or
+.* any later version.
+.*
+.* This program is distributed in the hope that it will be useful,
+.* but WITHOUT ANY WARRANTY; without even the implied warranty of
+.* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+.* GNU General Public License for more details.
+.*
+.* You should have received a copy of the GNU General Public License
+.* along with this program. See <https://www.gnu.org/licenses/>.
+.*
+         COPY  $MGBLDEF            BRING IN GLOBAL SYMBOLS
+         LCLA  &I,&J,&K
+         LCLC  &LENGTH1,&LENGTH2,&LENGTH3 ANALYZE &$BT
+         LCLC  &X,&Y,&OP,&OPND1,&OPND2,&OPND3,&C,&NC,&TSTCOND
+         LCLC  &OPND4,&OPND5,&OPND6
+.*
+.* =*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+.*                                                                    *
+.* IMPORTANT SET SYMBOL NAMES                                         *
+.*                                                                    *
+.* &$MFNAME WILL CONTAIN THE UNIQUE TAG FOR THE CONDITION WHERE A     *
+.*          BRANCH ON FALSE WILL OCCUR.                               *
+.* &$MTNAME WILL CONTAIN THE UNIQUE TAG FOR THE CONDITION WHERE A     *
+.*          BRANCH ON TRUE WILL OCCUR.                                *
+.* &$BT     IS THE EXTENDED CONDITION CODE MNEMONIC SPECIFIED IN THE  *
+.*          MACRO CALL STATING THE CONDITION IN WHICH THE PREMISE OF  *
+.*          THE LOGIC PHRASE IS TRUE.                                 *
+.* &$BF     IS THE EXTENDED CONDITION CODE MNEMONIC CALCULATED WITHIN *
+.*          THE MACRO GENERATION STATING THE CONDITION IN WHICH THE   *
+.*          PREMISE OF THE LOGIC PHRASE IS FALSE.                     *
+.*                                                                    *
+.* =*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+.*
+.* =*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+.*                                                                    *
+.* INITIALIZATION.                                                    *
+.*                                                                    *
+.* =*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+.*
+&$MLVL   SETA  &$MLVL+1            INCREASE RECURSION/NESTING COUNT
+&I       SETA  1                   SET TO FIRST POSITIONAL
+&$MNAME  SETC  '&NAME'             TAG FOR FIRST TEST
+.*
+.* =*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+.*                                                                    *
+.* PROCESS THE LOGIC PACK FOR OP-CODE, OPERAND(S), AND THE CONDITION  *
+.* UNDER WHICH THE THE CODE FOLLOWING THE "IF" IS TO BE EXECUTED.     *
+.*                                                                    *
+.* =*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+.*
+.LOOP020 ANOP  START THE PROCESS (MAYBE) AGAIN
+         AIF   ('&SYSLIST(&I)' EQ '').FINISH260  GO TO FINISH IF DONE
+&$ERRSW  SETC  'N'                 NO ERROR EXISTS AT THIS POINT
+         AIF   ('&SYSLIST(&I)'(1,1) NE '(').FATAL180   MUST BE '('
+         AIF   ('&SYSLIST(&I)'(2,1) EQ '(').RECURS120 GO IF NESTED
+&OP      SETC  '&SYSLIST(&I,1)'    OP-CODE IS ALWAYS 1ST SUB-OPERAND
+&J       SETA  (N'&SYSLIST(&I))    NUMBER OF SUBPARAMETERS FOR THIS ONE
+         AIF   (&J NE 2).TEST030     GO TEST FOR 1-OPERAND INST
+&$MNAME  &OP   ,                   ZERO OPERAND INSTRUCTION
+&$BT     SETC  '&SYSLIST(&I,2)'    CONDITION IS ALWAYS LAST SUB-OPERAND
+         AGO   .FINGEN070             GO SET UP BRANCH INST
+.TEST030 ANOP  ,
+&OPND1   SETC  '&SYSLIST(&I,2)'    FIRST (ONLY?) OPERAND
+         AIF   (&J NE 3).TEST040     GO TEST FOR 2-OPERAND INST
+&$MNAME  &OP   &OPND1              ONE OPERAND
+&$BT     SETC  '&SYSLIST(&I,3)'    CONDITION IS ALWAYS LAST SUB-OPERAND
+         AGO   .FINGEN070             GO SET UP BRANCH INST
+.TEST040 ANOP  ,
+&OPND2   SETC  '&SYSLIST(&I,3)'    SECOND OPERAND
+         AIF   (&J NE 4).TEST050     GO TEST FOR 3-OPERAND INST
+&$MNAME  &OP   &OPND1,&OPND2       TWO OPERANDS
+&$BT     SETC  '&SYSLIST(&I,4)'    CONDITION IS ALWAYS LAST SUB-OPERAND
+         AGO   .FINGEN070             GO SET UP BRANCH INST
+.TEST050 ANOP  ,
+&OPND3   SETC  '&SYSLIST(&I,4)'    THIRD OPERAND
+         AIF   (&J NE 5).TEST052
+&$MNAME  &OP   &OPND1,&OPND2,&OPND3 THREE OPERANDS
+&$BT     SETC  '&SYSLIST(&I,5)'   CONDITION IS ALWAYS LAST SUB-OPERAND
+         AGO   .FINGEN070            GO SET UP BRANCH INST
+.TEST052 ANOP
+&OPND4   SETC  '&SYSLIST(&I,5)'    FOURTH OPERAND
+         AIF   (&J NE 6).TEST054
+&$MNAME  &OP   &OPND1,&OPND2,&OPND3,&OPND4  FOUR OPERANDS
+&$BT     SETC  '&SYSLIST(&I,6)'   CONDITION IS ALWAYS LAST SUB-OPERAND
+         AGO   .FINGEN070            GO SET UP BRANCH INST
+.TEST054 ANOP
+&OPND5   SETC  '&SYSLIST(&I,6)'    FIFTH OPERAND
+         AIF   (&J NE 7).TEST056
+&$MNAME  &OP   &OPND1,&OPND2,&OPND3,&OPND4,&OPND5 FIVE OPERANDS
+&$BT     SETC  '&SYSLIST(&I,7)'   CONDITION IS ALWAYS LAST SUB-OPERAND
+         AGO   .FINGEN070            GO SET UP BRANCH INST
+.TEST056 ANOP
+&OPND6   SETC  '&SYSLIST(&I,7)'    SIXTH OPERAND
+         AIF   (&J NE 8).ERROR060
+&$MNAME  &OP   &OPND1,&OPND2,&OPND3,&OPND4,&OPND5,&OPND6  SIX OPERANDS
+&$BT     SETC  '&SYSLIST(&I,8)'   CONDITION IS ALWAYS LAST SUB-OPERAND
+         AGO   .FINGEN070            GO SET UP B
+.ERROR060 ANOP ,
+&K       SETA  ((&I+3)/2)          GET SEQUENCE # OF PHRASE IN ERROR
+         MNOTE 08,'INVALID NUMBER OF PARMS (&J) IN CONDITIONAL PHRASE #*
+               &K &SYSLIST(&I); IT WILL BE DELETED FROM THE MACRO EXPAN*
+               SION'
+&I       SETA  &I+2                INCREMENT
+         AGO   .LOOP020             BACK FOR MORE
+.*
+.* =*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+.*                                                                    *
+.* THE TEST INSTRUCTION THAT SETS THE CONDITION CODE HAS BEEN         *
+.* GENERATED; NOW SET UP FOR CREATING THE BRANCH-ON-CONDITION.        *
+.*                                                                    *
+.* =*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+.*
+.FINGEN070 ANOP
+&$MNAME  SETC  ''                  PREVENT DUPLICATE TAG
+.*
+.* =*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+.*                                                                    *
+.* &$BT IS THE VALUE OF THE CONDITION SPECIFIED IN THE MACRO CALL.    *
+.* &$BT IS THE MNEMONIC PORTION OF THE BRANCH INSTRUCTION THAT WILL   *
+.* GENERATE A BRANCH CONDITION THAT WILL BRANCH IF THE CONDITION      *
+.* BEING TESTED IS TRUE. IF &$BT HAS THE VALUE OF "NE", THAT MEANS    *
+.* THAT THE BODY OF THE IF-GROUP WILL BE EXECUTED IF THE RESULT OF    *
+.* PREVIOUSLY GENERATED INSTRUCTION IS "NE", AND THE INSTRUCTION      *
+.* GENERATED WILL NORMALLY BE "JE" TO BRANCH AROUND THE EXECUTABLE    *
+.* BODY OF THE IF-GROUP. THE ONLY EXCEPTION IS IF THE LOGIC AROSE     *
+.* FROM A "DO UNTIL=..." MACRO CALL, WHERE THE BRANCH AROUND THE      *
+.* EXECUTABLE BODY OF THE DO-GROUP WOULD BE "JNE".                    *
+.*                                                                    *
+.* &$BF (BRANCH ON FALSE) WILL HAVE THE OPPOSITE VALUE TO &$BT; IN    *
+.* THIS INSTANCE, IT WOULD BE "E".                                    *
+.*                                                                    *
+.* =*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+.*
+&LENGTH1 SETC  '&$BT'(1,1)        1ST CHAR OF USER-SPECIFIED CONDITION
+&LENGTH2 SETC  '&$BT'(1,2)        FIRST TWO CHARACTERS
+&LENGTH3 SETC  '&$BT'             ALL CHARACTERS
+         AIF ('&LENGTH2' NE '&LENGTH3').ERR100 LENGTH OF COND PARM > 2?
+         AIF   ('&LENGTH1' EQ '&LENGTH2').ONE080 ONE CHAR CONDITION
+         AIF   ('&LENGTH1' NE 'N').ERR100 IF 2 CHAR 1ST MUST BE "N"
+&$BF     SETC  '&LENGTH2'(2,1) &$BT 1ST CHAR IS "N", 2ND IS CONDITION
+&TSTCOND SETC  '&$BF'   FOR VALIDATING CONDITION
+         AGO   .FIRST090
+.ONE080  ANOP
+&$BF     SETC  'N&LENGTH1' 1 CHAR CONDITION; "N" WILL BE 1ST CHAR
+&TSTCOND SETC  '&$BT'   FOR VALIDATING CONDITION
+.FIRST090 ANOP , MNOTE '$BT "&$BT" $BF "&$BF"'
+         AIF   ('&TSTCOND' EQ 'E').OK065
+         AIF   ('&TSTCOND' EQ 'H').OK065
+         AIF   ('&TSTCOND' EQ 'L').OK065
+         AIF   ('&TSTCOND' EQ 'M').OK065
+         AIF   ('&TSTCOND' EQ 'O').OK065
+         AIF   ('&TSTCOND' EQ 'P').OK065
+         AIF   ('&TSTCOND' EQ 'Z').OK065
+.* =*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+.ERR100  MNOTE 8,'INVALID CONDITION REQUESTED: "&LENGTH3"'
+         MNOTE 'THIS CLAUSE DELETED FROM ASSEMBLY'
+&$ERRSW  SETC  'Y'                 FLAG ERROR
+&$BT     SETC  'NOP'               FLAG ERROR
+&$BF     SETC  'NOP'               FLAG ERROR
+.OK065   AIF   ('&$ERRSW' EQ 'N').DISTR175
+&I       SETA  &I+2
+         AGO   .LOOP020
+.*
+.* =*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+.*                                                                    *
+.* PROCESS A NEW LOGIC PACK OPENED WITH MULTIPLE PARENTHESES, MEANING *
+.* THAT "OR" CONJUNCTIONS MAY BE FORCED TO A HIGHER PRIORITY THAN THE *
+.* "AND" CONJUNCTION.                                                 *
+.*                                                                    *
+.* =*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+.*
+.RECURS120 ANOP                    HERE FOR RECURSIVE CALL
+&$MNAME  IF2   &SYSLIST(&I,1),&SYSLIST(&I,2),&SYSLIST(&I,3),           C
+               &SYSLIST(&I,4),&SYSLIST(&I,5),&SYSLIST(&I,6),           C
+               &SYSLIST(&I,7),&SYSLIST(&I,8),&SYSLIST(&I,9),           C
+               &SYSLIST(&I,10),&SYSLIST(&I,11),&SYSLIST(&I,12),        C
+               &SYSLIST(&I,13),&SYSLIST(&I,14),&SYSLIST(&I,15),        C
+               &SYSLIST(&I,16),&SYSLIST(&I,17),&SYSLIST(&I,18),        C
+               &SYSLIST(&I,19),&SYSLIST(&I,20),&SYSLIST(&I,21)
+&J       SETA  &$MLVL+1              VALUE OF LEVEL JUST RETURNED FROM
+.* =*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+.* RESOLVE THE TWO POSSIBLE &$FNAME VALUES FROM RECURSIVE LEVEL AND   *
+.* THIS LEVEL.                                                        *
+.* =*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         AIF   ('&$MFNAME(&J)' EQ '').RECURS150 IF '' DON'T DO ANYTHING
+         AIF   ('&$MFNAME(&$MLVL)' EQ '').RECURS140 IF '' SIMPLY COPY
+&Y       SETC  '&$MFNAME(&J)'
+&Y       EQU   &$MFNAME(&$MLVL)    ANCHOR NESTED FALSE NAME
+         AGO   .RECURS150
+&$MPTR   SETA  &$MPTR+1            BOTH EXIST - QUEUE FOR LATER
+&$MEQ1(&$MPTR) SETC '&$MFNAME(&J)'       "EQUATE" STATEMENT CREATED
+&$MEQ2(&$MPTR) SETC '&$MFNAME(&$MLVL)'   IN "ENDIF" MACRO
+         AGO   .RECURS150
+.RECURS140 ANOP ,                  NO VAL FOR THIS LEVEL -
+&$MFNAME(&$MLVL) SETC '&$MFNAME(&J)'      COPY FROM "UPPER" LEVEL
+.RECURS150 ANOP
+&$MFNAME(&J) SETC ''
+.* =*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+.* IF THERE IS AN "AND" CONJUNCTION AS THE NEXT PHRASE, THEN DO NOT   *
+.* MIGRATE THE MTNAME VALUE; THE &$MTNAME PASSED FROM THE RECURSIVE   *
+.* LEVEL (IF THERE IS ONE) WILL BE TRAPPED FOLLOWING THE              *
+.* BRANCH-ON-FALSE GENERATED IN THE ".AND220" ROUTINE.                *
+.* =*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         AIF   ('&SYSLIST(&I+1)' EQ 'AND').AND220
+         AIF   ('&$MTNAME(&J)' EQ '').RECURS170 IF '' DON'T DO ANYTHING
+         AIF   ('&$MTNAME(&$MLVL)' EQ '').RECURS160 IF '' SIMPLE COPY
+&Y       SETC  '&$MTNAME(&J)'
+&Y       EQU   &$MTNAME(&$MLVL)    ANCHOR NESTED TRUE NAME
+         AGO   .RECURS170
+&$MPTR   SETA  &$MPTR+1            CREATE UNIQUE VALUE FOR EQU QUEUE
+&$MEQ1(&$MPTR) SETC '&$MTNAME(&J)' QUEUE BOTH VALUES FOR EVENTUAL
+&$MEQ2(&$MPTR) SETC '&$MTNAME(&$MLVL)' . EQUATE STATEMENT
+         AGO   .RECURS170
+.RECURS160 ANOP
+&$MTNAME(&$MLVL) SETC '&$MTNAME(&J)' COPY RECURS LEVEL TO CURRENT LVL
+.RECURS170 ANOP
+&$MTNAME(&J) SETC ''
+.* =*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+.DISTR175 AIF  ('&SYSLIST(&I+1)' EQ 'OR').OR190
+         AIF   ('&SYSLIST(&I+1)' EQ 'AND').AND220
+         AIF   ('&SYSLIST(&I+1)' EQ '').FINISH260 GO IF NO CONJUNCTION
+         MNOTE 8,'INVALID CONJUNCTION "&SYSLIST(&I+1)"'
+         MNOTE 'THIS PHRASE DELETED FROM MACRO EXPANSION'
+&I       SETA  &I+2                BUMP TO NEXT CLAUSE
+         AGO   .LOOP020
+.*
+.* =*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+.*                                                                    *
+.* A LOGIC PACK DID NOT OPEN WITH A "(". ===> FATAL MISTAKE <===      *
+.*                                                                    *
+.* =*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+.*
+.FATAL180   MNOTE 8,'MISSING PARENS AT "&SYSLIST(&I)" - TERMINATED'
+         MEXIT
+.*
+.* =*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+.*                                                                    *
+.* PROCESS A CLAUSE THAT IS FOLLOWED BY AN "OR" CONJUNCTION.          *
+.*                                                                    *
+.* =*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+.*
+.OR190   AIF   ('&SYSLIST(&I+2)'(1,1) NE '(').ERROR255 MUST BE '('
+         AIF   ('&$MTNAME(&$MLVL)' NE '').OR200 SKIP IF NOT NEEDED
+&$Y$NDX  SETA  &$Y$NDX+1           BUMP FOR UNIQUENESS
+&$MTNAME(&$MLVL) SETC '$MDT&$Y$NDX' CREATE UNIQUE TAG
+.OR200   J&$BT &$MTNAME(&$MLVL)    TRUE RESULT - POSSIBLE PASS
+&$MNAME  SETC  '&$MFNAME(&$MLVL)'  QUEUE NAME (IF ANY) FOR .LOOP020
+&$MFNAME(&$MLVL) SETC  ''          NULLIFY
+&I       SETA  &I+2                BUMP TO NEXT CLAUSE
+         AGO   .LOOP020             AND BACK
+.*
+.* =*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+.*                                                                    *
+.* PROCESS A CLAUSE THAT IS FOLLOWED BY AN "AND" CONJUNCTION.         *
+.*                                                                    *
+.* =*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+.*
+.AND220  ANOP
+         AIF   ('&SYSLIST(&I+2)'(1,1) NE '(').ERROR255 MUST BE '('
+         AIF   ('&$MFNAME(&$MLVL)' NE '').AND230
+&$Y$NDX  SETA  &$Y$NDX+1           MUST HAVE A UNIQUE -
+&$MFNAME(&$MLVL) SETC '$MDF&$Y$NDX' CREATE UNIQUE TAG
+.AND230  J&$BF &$MFNAME(&$MLVL)    FALSE RESULT - POSSIBLE FAIL
+&J       SETA  &$MLVL+1            INDEX OF (POSSIBLE) RECURSIVE NAME
+&$MNAME  SETC  '&$MTNAME(&J)'      QUEUE NAME FOR USE IN .LOOP020
+&$MTNAME(&J) SETC  ''              NULLIFY
+&I       SETA  &I+2                BUMP TO NEXT
+         AGO   .LOOP020             AND BACK
+.* =*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+.ERROR255 ANOP
+         MNOTE 8,'NO VALID PHRASE FOLLOWING THE "&SYSLIST(&I+1)"'
+&$ERRSW  SETC  'Y'                 FLAG ERROR
+.*
+.* =*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+.*                                                                    *
+.* THIS IS THE END OF CONDITIONAL PHRASES AT THIS RECURSIVE LEVEL.    *
+.*                                                                    *
+.* =*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+.*
+./ ADD NAME=IF2
+.*   Copyright (C) <2021>  Daniel H. Snyder
+.*   Structured Programming Macros for the IBM High Level Assembler
+.*   Daniel.H.Snyder@protonmail.com
+.*
+.* This program is free software: you can redistribute it and/or modify
+.* it under the terms of the GNU General Public License as published by
+.* the Free Software Foundation, either version 3 of the License, or
+.* any later version.
+.*
+.* This program is distributed in the hope that it will be useful,
+.* but WITHOUT ANY WARRANTY; without even the implied warranty of
+.* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+.* GNU General Public License for more details.
+.*
+.* You should have received a copy of the GNU General Public License
+.* along with this program. See <https://www.gnu.org/licenses/>.
+.*
+         MACRO
+&NAME    IF2   &EXP                MULTIPLE OPERANDS VIA &SYSLIST
+         COPY  IFCOPY
+.FINISH260 ANOP
+&$MLVL   SETA  &$MLVL-1   SUBTRACT THE "1" THAT WAS ADDED
+.MEND290 ANOP
+         MEND
+./ ENDUP
+/*
+//

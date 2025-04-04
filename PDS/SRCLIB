@@ -1,0 +1,3870 @@
+//MACLIB EXEC PGM=IEBUPDTE,PARM=NEW
+//SYSUT1   DD  DUMMY
+//SYSUT2   DD  DSN=<USERID.STRUCT.MACLIB>,DISP=(NEW,CATLG), ......
+//SYSPRINT DD  SYSOUT=*
+//SYSIN  DD    DATA
+./ ADD NAME=IFTEST
+         AGO   .SKIP
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+*   Copyright (C) <2021>  Daniel H. Snyder
+*   Structured Programming Macros for the IBM High Level Assembler
+*   Daniel.H.Snyder@protonmail.com
+*
+* This program is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* any later version.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with this program. See <https://www.gnu.org/licenses/>.
+*
+.SKIP    ANOP
+IFTEST   TITLE 'EXAMPLES OF "IF" LOGIC MACRO INSTRUCTIONS'
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+*                                                                     *
+*      THESE FOLLOWING STATEMENTS ARE NORMAL zOS INITIALIZATION       *
+*                                                                     *
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+*
+R0       EQU   0
+R1       EQU   1       STANDARD
+R2       EQU   2        EQUATES
+R3       EQU   3         FOR
+R4       EQU   4          GENERAL
+R5       EQU   5           PURPOSE
+R6       EQU   6            REGISTERS.
+R7       EQU   7             YOU
+R8       EQU   8              MIGHT
+R9       EQU   9               AS
+R10      EQU   10               WELL
+R11      EQU   11                JUST
+R12      EQU   12                 GET
+R13      EQU   13                  USED
+R14      EQU   14                   TO
+R15      EQU   15                    IT.
+*
+IFTEST   CSECT
+*
+         STM   R14,R12,12(R13)     SAVE REGS IN CALLER'S SAVE AREA
+         LR    R12,R15             PRIME BASE REG
+         USING IFTEST,R12          SET BASE REGISTER FOR PROGRAM
+         LR    R1,R13              COPY THE CALLER'S SAVEAREA POINTER
+         L     R13,VCON$WA$        ADDRESS OF MY SAVE/WORK AREA
+         IF    (CLR,R1,R1,NE)
+VCON$WA$ DC    V($$WA$$)
+         ENDIF
+         USING $$WA$$,R13          SEPARATE CSECT FOR REENTRANCY
+         ST    R1,SAVEAREA+4       BACK LINK TO CALLER'S SAVE AREA
+         ST    R13,8(,R1)          FORWARD LINK TO MY SAVE AREA
+*
+$$WA$$   CSECT
+SAVEAREA DC    18F'0'              MY SAVE AREA
+IFTEST   CSECT
+*
+         OPEN  (SYSPRINT,OUTPUT)
+*
+         PRINT GEN
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+*                                                                     *
+* TEST SHOWING WHAT HAPPENS WHEN THE RESULT OF THE "IF" CREATES TRUE  *
+*                                                                     *
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+*
+         MVI   VARBL1,C'A'         SET TO PASS
+         MVC   PREDOUT,=C'TRUE '
+         MVC   TESTNBR,=C'TEST010A'
+*
+TEST010A IF    (CLI,VARBL1,C'A',E)
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'Z'         SET TO FAIL
+         MVC   PREDOUT,=C'FALSE'
+         MVC   TESTNBR,=C'TEST010B'
+*
+TEST010B IF    (CLI,VARBL1,C'A',E)
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+          IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+*                                                                     *
+* PREDICTED RESULT IS TRUE                                            *
+*                                                                     *
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+*
+         MVI   VARBL1,C'A'         SET TO PASS
+         MVI   VARBL2,C'B'         SET TO PASS
+         MVC   PREDOUT,=C'TRUE '
+         MVC   TESTNBR,=C'TEST030A'
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+TEST030A IF    (CLI,VARBL1,C'A',E),AND,(CLI,VARBL2,C'B',E)
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+*                                                                     *
+* PREDICTED RESULT IS FALSE                                           *
+*                                                                     *
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+*
+         MVI   VARBL1,C'Z'         SET TO FAIL
+         MVI   VARBL2,C'B'         SET TO PASS
+         MVC   PREDOUT,=C'FALSE'
+         MVC   TESTNBR,=C'TEST030B'
+*
+TEST030B IF    (CLI,VARBL1,C'A',E),AND,(CLI,VARBL2,C'B',E)
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'A'         SET TO PASS
+         MVI   VARBL2,C'Z'         SET TO FAIL
+         MVC   PREDOUT,=C'FALSE'
+         MVC   TESTNBR,=C'TEST030C'
+*
+TEST030C IF    (CLI,VARBL1,C'A',E),AND,(CLI,VARBL2,C'B',E)
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'Z'         SET TO FAIL
+         MVI   VARBL2,C'Z'         SET TO FAIL
+         MVC   PREDOUT,=C'FALSE'
+         MVC   TESTNBR,=C'TEST030D'
+*
+TEST030D IF    (CLI,VARBL1,C'A',E),AND,(CLI,VARBL2,C'B',E)
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+*                                                                     *
+* TEST "IF" MACRO USING "OR" CONJUNCTION                              *
+*                                                                     *
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+*
+         MVI   VARBL1,C'A'         SET TO PASS
+         MVI   VARBL2,C'B'         SET TO PASS
+         MVC   PREDOUT,=C'TRUE '
+         MVC   TESTNBR,=C'TEST040A'
+*
+TEST040A IF    (CLI,VARBL1,C'A',E),OR,(CLI,VARBL2,C'B',E)
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'Z'         SET TO FAIL
+         MVI   VARBL2,C'B'         SET TO PASS
+         MVC   PREDOUT,=C'TRUE '
+         MVC   TESTNBR,=C'TEST040B'
+*
+TEST040B IF    (CLI,VARBL1,C'A',E),OR,(CLI,VARBL2,C'B',E)
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'A'         SET TO PASS
+         MVI   VARBL2,C'Z'         SET TO FAIL
+         MVC   PREDOUT,=C'TRUE '
+         MVC   TESTNBR,=C'TEST040C'
+*
+TEST040C IF    (CLI,VARBL1,C'A',E),OR,(CLI,VARBL2,C'B',E)
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'Z'         SET TO FAIL
+         MVI   VARBL2,C'Z'         SET TO FAIL
+         MVC   PREDOUT,=C'FALSE'
+         MVC   TESTNBR,=C'TEST040D'
+*
+TEST040D IF    (CLI,VARBL1,C'A',E),OR,(CLI,VARBL2,C'B',E)
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+*                                                                     *
+* THREE "AND" CONJUNCTIONS                                            *
+*                                                                     *
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+*
+         MVI   VARBL1,C'A'         SET TO PASS
+         MVI   VARBL2,C'B'         SET TO PASS
+         MVI   VARBL3,C'C'         SET TO PASS
+         MVC   PREDOUT,=C'TRUE '
+         MVC   TESTNBR,=C'TEST050A'
+*
+TEST050A IF    (CLI,VARBL1,C'A',E),AND,(CLI,VARBL2,C'B',E),            C
+               AND,(CLI,VARBL3,C'C',E)
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'Z'         SET TO FAIL
+         MVI   VARBL2,C'B'         SET TO PASS
+         MVI   VARBL3,C'C'         SET TO PASS
+         MVC   PREDOUT,=C'FALSE'
+         MVC   TESTNBR,=C'TEST050B'
+*
+TEST050B IF    (CLI,VARBL1,C'A',E),AND,(CLI,VARBL2,C'B',E),            C
+               AND,(CLI,VARBL3,C'C',E)
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'A'         SET TO PASS
+         MVI   VARBL2,C'Z'         SET TO FAIL
+         MVI   VARBL3,C'C'         SET TO PASS
+         MVC   PREDOUT,=C'FALSE'
+         MVC   TESTNBR,=C'TEST050C'
+*
+TEST050C IF    (CLI,VARBL1,C'A',E),AND,(CLI,VARBL2,C'B',E),            C
+               AND,(CLI,VARBL3,C'C',E)
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'Z'         SET TO FAIL
+         MVI   VARBL2,C'Z'         SET TO FAIL
+         MVI   VARBL3,C'C'         SET TO PASS
+         MVC   PREDOUT,=C'FALSE'
+         MVC   TESTNBR,=C'TEST050D'
+*
+TEST050D IF    (CLI,VARBL1,C'A',E),AND,(CLI,VARBL2,C'B',E),            C
+               AND,(CLI,VARBL3,C'C',E)
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'A'         SET TO PASS
+         MVI   VARBL2,C'B'         SET TO PASS
+         MVI   VARBL3,C'Z'         SET TO FAIL
+         MVC   PREDOUT,=C'FALSE'
+         MVC   TESTNBR,=C'TEST050E'
+*
+TEST050E IF    (CLI,VARBL1,C'A',E),AND,(CLI,VARBL2,C'B',E),            C
+               AND,(CLI,VARBL3,C'C',E)
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'Z'         SET TO FAIL
+         MVI   VARBL2,C'B'         SET TO PASS
+         MVI   VARBL3,C'Z'         SET TO FAIL
+         MVC   PREDOUT,=C'FALSE'
+         MVC   TESTNBR,=C'TEST050F'
+*
+TEST050F IF    (CLI,VARBL1,C'A',E),AND,(CLI,VARBL2,C'B',E),            C
+               AND,(CLI,VARBL3,C'C',E)
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'A'         SET TO PASS
+         MVI   VARBL2,C'Z'         SET TO FAIL
+         MVI   VARBL3,C'Z'         SET TO FAIL
+         MVC   PREDOUT,=C'FALSE'
+         MVC   TESTNBR,=C'TEST050G'
+*
+TEST050G IF    (CLI,VARBL1,C'A',E),AND,(CLI,VARBL2,C'B',E),            C
+               AND,(CLI,VARBL3,C'C',E)
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'Z'         SET TO FAIL
+         MVI   VARBL2,C'Z'         SET TO FAIL
+         MVI   VARBL3,C'Z'         SET TO FAIL
+         MVC   PREDOUT,=C'FALSE'
+         MVC   TESTNBR,=C'TEST050H'
+*
+TEST050H IF    (CLI,VARBL1,C'A',E),AND,(CLI,VARBL2,C'B',E),            C
+               AND,(CLI,VARBL3,C'C',E)
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+*                                                                     *
+* THREE "OR" CONJUNCTIONS                                             *
+*                                                                     *
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+*
+         MVI   VARBL1,C'A'         SET TO PASS
+         MVI   VARBL2,C'B'         SET TO PASS
+         MVI   VARBL3,C'C'         SET TO PASS
+         MVC   PREDOUT,=C'TRUE '
+         MVC   TESTNBR,=C'TEST060A'
+*
+TEST060A IF    (CLI,VARBL1,C'A',E),OR,(CLI,VARBL2,C'B',E),             C
+               OR,(CLI,VARBL3,C'C',E)
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'Z'         SET TO FAIL
+         MVI   VARBL2,C'B'         SET TO PASS
+         MVI   VARBL3,C'C'         SET TO PASS
+         MVC   PREDOUT,=C'TRUE '
+         MVC   TESTNBR,=C'TEST060B'
+*
+TEST060B IF    (CLI,VARBL1,C'A',E),OR,(CLI,VARBL2,C'B',E),             C
+               OR,(CLI,VARBL3,C'C',E)
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'A'         SET TO PASS
+         MVI   VARBL2,C'Z'         SET TO FAIL
+         MVI   VARBL3,C'C'         SET TO PASS
+         MVC   PREDOUT,=C'TRUE '
+         MVC   TESTNBR,=C'TEST060C'
+*
+TEST060C IF    (CLI,VARBL1,C'A',E),OR,(CLI,VARBL2,C'B',E),             C
+               OR,(CLI,VARBL3,C'C',E)
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'Z'         SET TO FAIL
+         MVI   VARBL2,C'Z'         SET TO FAIL
+         MVI   VARBL3,C'C'         SET TO PASS
+         MVC   PREDOUT,=C'TRUE '
+         MVC   TESTNBR,=C'TEST060D'
+*
+TEST060D IF    (CLI,VARBL1,C'A',E),OR,(CLI,VARBL2,C'B',E),             C
+               OR,(CLI,VARBL3,C'C',E)
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'A'         SET TO PASS
+         MVI   VARBL2,C'B'         SET TO PASS
+         MVI   VARBL3,C'Z'         SET TO FAIL
+         MVC   PREDOUT,=C'TRUE '
+         MVC   TESTNBR,=C'TEST060E'
+*
+TEST060E IF    (CLI,VARBL1,C'A',E),OR,(CLI,VARBL2,C'B',E),             C
+               OR,(CLI,VARBL3,C'C',E)
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'Z'         SET TO FAIL
+         MVI   VARBL2,C'B'         SET TO PASS
+         MVI   VARBL3,C'Z'         SET TO FAIL
+         MVC   PREDOUT,=C'TRUE '
+         MVC   TESTNBR,=C'TEST060F'
+*
+TEST060F IF    (CLI,VARBL1,C'A',E),OR,(CLI,VARBL2,C'B',E),             C
+               OR,(CLI,VARBL3,C'C',E)
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'A'         SET TO PASS
+         MVI   VARBL2,C'Z'         SET TO FAIL
+         MVI   VARBL3,C'Z'         SET TO FAIL
+         MVC   PREDOUT,=C'TRUE '
+         MVC   TESTNBR,=C'TEST060G'
+*
+TEST060G IF    (CLI,VARBL1,C'A',E),OR,(CLI,VARBL2,C'B',E),             C
+               OR,(CLI,VARBL3,C'C',E)
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'Z'         SET TO FAIL
+         MVI   VARBL2,C'Z'         SET TO FAIL
+         MVI   VARBL3,C'Z'         SET TO FAIL
+         MVC   PREDOUT,=C'FALSE'
+         MVC   TESTNBR,=C'TEST060H'
+*
+TEST060H IF    (CLI,VARBL1,C'A',E),OR,(CLI,VARBL2,C'B',E),             C
+               OR,(CLI,VARBL3,C'C',E)
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+*                                                                     *
+* IF (A) AND (B) OR (C)                                               *
+*                                                                     *
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+*
+         MVI   VARBL1,C'A'         SET TO PASS
+         MVI   VARBL2,C'B'         SET TO PASS
+         MVI   VARBL3,C'C'         SET TO PASS
+         MVC   PREDOUT,=C'TRUE '
+         MVC   TESTNBR,=C'TEST070A'
+*
+TEST070A IF    (CLI,VARBL1,C'A',E),AND,(CLI,VARBL2,C'B',E),            C
+               OR,(CLI,VARBL3,C'C',E)
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'Z'         SET TO FAIL
+         MVI   VARBL2,C'B'         SET TO PASS
+         MVI   VARBL3,C'C'         SET TO PASS
+         MVC   PREDOUT,=C'TRUE '
+         MVC   TESTNBR,=C'TEST070B'
+*
+TEST070B IF    (CLI,VARBL1,C'A',E),AND,(CLI,VARBL2,C'B',E),            C
+               OR,(CLI,VARBL3,C'C',E)
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'A'         SET TO PASS
+         MVI   VARBL2,C'Z'         SET TO FAIL
+         MVI   VARBL3,C'C'         SET TO PASS
+         MVC   PREDOUT,=C'TRUE '
+         MVC   TESTNBR,=C'TEST070C'
+*
+TEST070C IF    (CLI,VARBL1,C'A',E),AND,(CLI,VARBL2,C'B',E),            C
+               OR,(CLI,VARBL3,C'C',E)
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         BALR  R12,0
+         USING *,R12
+         MVI   VARBL1,C'Z'         SET TO FAIL
+         MVI   VARBL2,C'Z'         SET TO FAIL
+         MVI   VARBL3,C'C'         SET TO PASS
+         MVC   PREDOUT,=C'TRUE '
+         MVC   TESTNBR,=C'TEST070D'
+*
+TEST070D IF    (CLI,VARBL1,C'A',E),AND,(CLI,VARBL2,C'B',E),            C
+               OR,(CLI,VARBL3,C'C',E)
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'A'         SET TO PASS
+         MVI   VARBL2,C'B'         SET TO PASS
+         MVI   VARBL3,C'Z'         SET TO FAIL
+         MVC   PREDOUT,=C'TRUE '
+         MVC   TESTNBR,=C'TEST070E'
+*
+TEST070E IF    (CLI,VARBL1,C'A',E),AND,(CLI,VARBL2,C'B',E),            C
+               OR,(CLI,VARBL3,C'C',E)
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'Z'         SET TO FAIL
+         MVI   VARBL2,C'B'         SET TO PASS
+         MVI   VARBL3,C'Z'         SET TO FAIL
+         MVC   PREDOUT,=C'FALSE'
+         MVC   TESTNBR,=C'TEST070F'
+*
+TEST070F IF    (CLI,VARBL1,C'A',E),AND,(CLI,VARBL2,C'B',E),            C
+               OR,(CLI,VARBL3,C'C',E)
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'A'         SET TO PASS
+         MVI   VARBL2,C'Z'         SET TO FAIL
+         MVI   VARBL3,C'Z'         SET TO FAIL
+         MVC   PREDOUT,=C'FALSE'
+         MVC   TESTNBR,=C'TEST070G'
+*
+TEST070G IF    (CLI,VARBL1,C'A',E),AND,(CLI,VARBL2,C'B',E),            C
+               OR,(CLI,VARBL3,C'C',E)
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'Z'         SET TO FAIL
+         MVI   VARBL2,C'Z'         SET TO FAIL
+         MVI   VARBL3,C'Z'         SET TO FAIL
+         MVC   PREDOUT,=C'FALSE'
+         MVC   TESTNBR,=C'TEST070H'
+*
+TEST070H IF    (CLI,VARBL1,C'A',E),AND,(CLI,VARBL2,C'B',E),            C
+               OR,(CLI,VARBL3,C'C',E)
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+*                                                                     *
+* IF (A) AND ((B) OR (C))                                             *
+*                                                                     *
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+*
+         MVI   VARBL1,C'A'         SET TO PASS
+         MVI   VARBL2,C'B'         SET TO PASS
+         MVI   VARBL3,C'C'         SET TO PASS
+         MVC   PREDOUT,=C'TRUE '
+         MVC   TESTNBR,=C'TEST080A'
+*
+TEST080A IF    (CLI,VARBL1,C'A',E),AND,                                C
+               ((CLI,VARBL2,C'B',E),OR,(CLI,VARBL3,C'C',E))
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'Z'         SET TO FAIL
+         MVI   VARBL2,C'B'         SET TO PASS
+         MVI   VARBL3,C'C'         SET TO PASS
+         MVC   PREDOUT,=C'FALSE'
+         MVC   TESTNBR,=C'TEST080B'
+*
+TEST080B IF    (CLI,VARBL1,C'A',E),AND,                                C
+               ((CLI,VARBL2,C'B',E),OR,(CLI,VARBL3,C'C',E))
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'A'         SET TO PASS
+         MVI   VARBL2,C'Z'         SET TO FAIL
+         MVI   VARBL3,C'C'         SET TO PASS
+         MVC   PREDOUT,=C'TRUE '
+         MVC   TESTNBR,=C'TEST080C'
+*
+TEST080C IF    (CLI,VARBL1,C'A',E),AND,                                C
+               ((CLI,VARBL2,C'B',E),OR,(CLI,VARBL3,C'C',E))
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'Z'         SET TO FAIL
+         MVI   VARBL2,C'Z'         SET TO FAIL
+         MVI   VARBL3,C'C'         SET TO PASS
+         MVC   PREDOUT,=C'FALSE'
+         MVC   TESTNBR,=C'TEST080D'
+*
+TEST080D IF    (CLI,VARBL1,C'A',E),AND,                                C
+               ((CLI,VARBL2,C'B',E),OR,(CLI,VARBL3,C'C',E))
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'A'         SET TO PASS
+         MVI   VARBL2,C'B'         SET TO PASS
+         MVI   VARBL3,C'Z'         SET TO FAIL
+         MVC   PREDOUT,=C'TRUE '
+         MVC   TESTNBR,=C'TEST080E'
+*
+TEST080E IF    (CLI,VARBL1,C'A',E),AND,                                C
+               ((CLI,VARBL2,C'B',E),OR,(CLI,VARBL3,C'C',E))
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'Z'         SET TO FAIL
+         MVI   VARBL2,C'B'         SET TO PASS
+         MVI   VARBL3,C'Z'         SET TO FAIL
+         MVC   PREDOUT,=C'FALSE'
+         MVC   TESTNBR,=C'TEST080F'
+*
+TEST080F IF    (CLI,VARBL1,C'A',E),AND,                                C
+               ((CLI,VARBL2,C'B',E),OR,(CLI,VARBL3,C'C',E))
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'A'         SET TO PASS
+         MVI   VARBL2,C'Z'         SET TO FAIL
+         MVI   VARBL3,C'Z'         SET TO FAIL
+         MVC   PREDOUT,=C'FALSE'
+         MVC   TESTNBR,=C'TEST080G'
+*
+TEST080G IF    (CLI,VARBL1,C'A',E),AND,                                C
+               ((CLI,VARBL2,C'B',E),OR,(CLI,VARBL3,C'C',E))
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'Z'         SET TO FAIL
+         MVI   VARBL2,C'Z'         SET TO FAIL
+         MVI   VARBL3,C'Z'         SET TO FAIL
+         MVC   PREDOUT,=C'FALSE'
+         MVC   TESTNBR,=C'TEST080H'
+*
+TEST080H IF    (CLI,VARBL1,C'A',E),AND,                                C
+               ((CLI,VARBL2,C'B',E),OR,(CLI,VARBL3,C'C',E))
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+*                                                                     *
+* IF (A) AND (B) OR (C) AND (D)                                       *
+*                                                                     *
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+*
+         BALR  R12,0
+         USING *,R12
+         MVI   VARBL1,C'A'         SET TO PASS
+         LA    R15,0               SET TO PASS
+         MVI   VARBL3,X'00'        SET TO PASS
+         PACK  PACK1,=Z'1'         SET TO PASS
+         MVC   PREDOUT,=C'TRUE '
+         MVC   TESTNBR,=C'TEST090A'
+*
+TEST090A IF    (CLI,VARBL1,C'A',E),AND,(LTR,R15,R15,Z),OR,             C
+               (TM,VARBL3,X'01',Z),AND,(SP,PACK1,=P'1',Z)
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'Z'         SET TO FAIL
+         LA    R15,0               SET TO PASS
+         MVI   VARBL3,X'00'        SET TO PASS
+         PACK  PACK1,=Z'1'         SET TO PASS
+         MVC   PREDOUT,=C'TRUE '
+         MVC   TESTNBR,=C'TEST090B'
+*
+TEST090B IF    (CLI,VARBL1,C'A',E),AND,(LTR,R15,R15,Z),OR,             C
+               (TM,VARBL3,X'01',Z),AND,(SP,PACK1,=P'1',Z)
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'A'         SET TO PASS
+         LA    R15,4               SET TO FAIL
+         MVI   VARBL3,X'00'        SET TO PASS
+         PACK  PACK1,=Z'1'         SET TO PASS
+         MVC   PREDOUT,=C'TRUE '
+         MVC   TESTNBR,=C'TEST090C'
+*
+TEST090C IF    (CLI,VARBL1,C'A',E),AND,(LTR,R15,R15,Z),OR,             C
+               (TM,VARBL3,X'01',Z),AND,(SP,PACK1,=P'1',Z)
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'Z'         SET TO FAIL
+         LA    R15,4               SET TO FAIL
+         MVI   VARBL3,X'00'        SET TO PASS
+         PACK  PACK1,=Z'1'         SET TO PASS
+         MVC   PREDOUT,=C'TRUE '
+         MVC   TESTNBR,=C'TEST090D'
+*
+TEST090D IF    (CLI,VARBL1,C'A',E),AND,(LTR,R15,R15,Z),OR,             C
+               (TM,VARBL3,X'01',Z),AND,(SP,PACK1,=P'1',Z)
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'A'         SET TO PASS
+         LA    R15,0               SET TO PASS
+         MVI   VARBL3,X'01'        SET TO FAIL
+         PACK  PACK1,=Z'1'         SET TO PASS
+         MVC   PREDOUT,=C'TRUE '
+         MVC   TESTNBR,=C'TEST090E'
+*
+TEST090E IF    (CLI,VARBL1,C'A',E),AND,(LTR,R15,R15,Z),OR,             C
+               (TM,VARBL3,X'01',Z),AND,(SP,PACK1,=P'1',Z)
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'Z'         SET TO FAIL
+         LA    R15,0               SET TO PASS
+         MVI   VARBL3,X'01'        SET TO FAIL
+         PACK  PACK1,=Z'1'         SET TO PASS
+         MVC   PREDOUT,=C'FALSE'
+         MVC   TESTNBR,=C'TEST090F'
+*
+TEST090F IF    (CLI,VARBL1,C'A',E),AND,(LTR,R15,R15,Z),OR,             C
+               (TM,VARBL3,X'01',Z),AND,(SP,PACK1,=P'1',Z)
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'A'         SET TO PASS
+         LA    R15,4               SET TO FAIL
+         MVI   VARBL3,X'01'        SET TO FAIL
+         PACK  PACK1,=Z'1'         SET TO PASS
+         MVC   PREDOUT,=C'FALSE'
+         MVC   TESTNBR,=C'TEST090G'
+*
+TEST090G IF    (CLI,VARBL1,C'A',E),AND,(LTR,R15,R15,Z),OR,             C
+               (TM,VARBL3,X'01',Z),AND,(SP,PACK1,=P'1',Z)
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'Z'         SET TO FAIL
+         LA    R15,4               SET TO FAIL
+         MVI   VARBL3,X'01'        SET TO FAIL
+         PACK  PACK1,=Z'1'         SET TO PASS
+         MVC   PREDOUT,=C'FALSE'
+         MVC   TESTNBR,=C'TEST090H'
+*
+TEST090H IF    (CLI,VARBL1,C'A',E),AND,(LTR,R15,R15,Z),OR,             C
+               (TM,VARBL3,X'01',Z),AND,(SP,PACK1,=P'1',Z)
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'A'         SET TO PASS
+         LA    R15,0               SET TO PASS
+         MVI   VARBL3,X'00'        SET TO PASS
+         PACK  PACK1,=Z'2'         SET TO FAIL
+         MVC   PREDOUT,=C'TRUE '
+         MVC   TESTNBR,=C'TEST090I'
+*
+TEST090I IF    (CLI,VARBL1,C'A',E),AND,(LTR,R15,R15,Z),OR,             C
+               (TM,VARBL3,X'01',Z),AND,(SP,PACK1,=P'1',Z)
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'Z'         SET TO FAIL
+         LA    R15,0               SET TO PASS
+         MVI   VARBL3,X'00'        SET TO PASS
+         PACK  PACK1,=Z'2'         SET TO FAIL
+         MVC   PREDOUT,=C'FALSE'
+         MVC   TESTNBR,=C'TEST090J'
+*
+TEST090J IF    (CLI,VARBL1,C'A',E),AND,(LTR,R15,R15,Z),OR,             C
+               (TM,VARBL3,X'01',Z),AND,(SP,PACK1,=P'1',Z)
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'A'         SET TO PASS
+         LA    R15,4               SET TO FAIL
+         MVI   VARBL3,X'00'        SET TO PASS
+         PACK  PACK1,=Z'2'         SET TO FAIL
+         MVC   PREDOUT,=C'FALSE'
+         MVC   TESTNBR,=C'TEST090K'
+*
+TEST090K IF    (CLI,VARBL1,C'A',E),AND,(LTR,R15,R15,Z),OR,             C
+               (TM,VARBL3,X'01',Z),AND,(SP,PACK1,=P'1',Z)
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'Z'         SET TO FAIL
+         LA    R15,4               SET TO FAIL
+         MVI   VARBL3,X'00'        SET TO PASS
+         PACK  PACK1,=Z'2'         SET TO FAIL
+         MVC   PREDOUT,=C'FALSE'
+         MVC   TESTNBR,=C'TEST090L'
+*
+TEST090L IF    (CLI,VARBL1,C'A',E),AND,(LTR,R15,R15,Z),OR,             C
+               (TM,VARBL3,X'01',Z),AND,(SP,PACK1,=P'1',Z)
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'A'         SET TO PASS
+         LA    R15,0               SET TO PASS
+         MVI   VARBL3,X'01'        SET TO FAIL
+         PACK  PACK1,=Z'2'         SET TO FAIL
+         MVC   PREDOUT,=C'TRUE '
+         MVC   TESTNBR,=C'TEST090M'
+*
+TEST090M IF    (CLI,VARBL1,C'A',E),AND,(LTR,R15,R15,Z),OR,             C
+               (TM,VARBL3,X'01',Z),AND,(SP,PACK1,=P'1',Z)
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'Z'         SET TO FAIL
+         LA    R15,0               SET TO PASS
+         MVI   VARBL3,X'01'        SET TO FAIL
+         PACK  PACK1,=Z'2'         SET TO FAIL
+         MVC   PREDOUT,=C'FALSE'
+         MVC   TESTNBR,=C'TEST090N'
+*
+TEST090N IF    (CLI,VARBL1,C'A',E),AND,(LTR,R15,R15,Z),OR,             C
+               (TM,VARBL3,X'01',Z),AND,(SP,PACK1,=P'1',Z)
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'A'         SET TO PASS
+         LA    R15,4               SET TO FAIL
+         MVI   VARBL3,X'01'        SET TO FAIL
+         PACK  PACK1,=Z'2'         SET TO FAIL
+         MVC   PREDOUT,=C'FALSE'
+         MVC   TESTNBR,=C'TEST090O'
+*
+TEST090O IF    (CLI,VARBL1,C'A',E),AND,(LTR,R15,R15,Z),OR,             C
+               (TM,VARBL3,X'01',Z),AND,(SP,PACK1,=P'1',Z)
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'Z'         SET TO FAIL
+         LA    R15,4               SET TO FAIL
+         MVI   VARBL3,X'01'        SET TO FAIL
+         PACK  PACK1,=Z'2'         SET TO FAIL
+         MVC   PREDOUT,=C'FALSE'
+         MVC   TESTNBR,=C'TEST090P'
+*
+TEST090P IF    (CLI,VARBL1,C'A',E),AND,(LTR,R15,R15,Z),OR,             C
+               (TM,VARBL3,X'01',Z),AND,(SP,PACK1,=P'1',Z)
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+*                                                                     *
+* IF (A) AND ((B) OR (C)) AND (D)                                     *
+*                                                                     *
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+*
+         BALR  R12,0
+         USING *,R12
+         MVI   VARBL1,C'A'         SET TO PASS
+         LA    R15,0               SET TO PASS
+         MVI   VARBL3,X'00'        SET TO PASS
+         PACK  PACK1,=Z'1'         SET TO PASS
+         MVC   PREDOUT,=C'TRUE '
+         MVC   TESTNBR,=C'TEST100A'
+*
+TEST100A IF    (CLI,VARBL1,C'A',E),AND,                                C
+               ((LTR,R15,R15,Z),OR,(TM,VARBL3,X'01',Z)),AND,           C
+               (SP,PACK1,=P'1',Z)
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'Z'         SET TO FAIL
+         LA    R15,0               SET TO PASS
+         MVI   VARBL3,X'00'        SET TO PASS
+         PACK  PACK1,=Z'1'         SET TO PASS
+         MVC   PREDOUT,=C'FALSE'
+         MVC   TESTNBR,=C'TEST100B'
+*
+TEST100B IF    (CLI,VARBL1,C'A',E),AND,                                C
+               ((LTR,R15,R15,Z),OR,(TM,VARBL3,X'01',Z)),AND,           C
+               (SP,PACK1,=P'1',Z)
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'A'         SET TO PASS
+         LA    R15,4               SET TO FAIL
+         MVI   VARBL3,X'00'        SET TO PASS
+         PACK  PACK1,=Z'1'         SET TO PASS
+         MVC   PREDOUT,=C'TRUE '
+         MVC   TESTNBR,=C'TEST100C'
+*
+TEST100C IF    (CLI,VARBL1,C'A',E),AND,                                C
+               ((LTR,R15,R15,Z),OR,(TM,VARBL3,X'01',Z)),AND,           C
+               (SP,PACK1,=P'1',Z)
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'Z'         SET TO FAIL
+         LA    R15,4               SET TO FAIL
+         MVI   VARBL3,X'00'        SET TO PASS
+         PACK  PACK1,=Z'1'         SET TO PASS
+         MVC   PREDOUT,=C'FALSE'
+         MVC   TESTNBR,=C'TEST100D'
+*
+TEST100D IF    (CLI,VARBL1,C'A',E),AND,                                C
+               ((LTR,R15,R15,Z),OR,(TM,VARBL3,X'01',Z)),AND,           C
+               (SP,PACK1,=P'1',Z)
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'A'         SET TO PASS
+         LA    R15,0               SET TO PASS
+         MVI   VARBL3,X'01'        SET TO FAIL
+         PACK  PACK1,=Z'1'         SET TO PASS
+         MVC   PREDOUT,=C'TRUE '
+         MVC   TESTNBR,=C'TEST100E'
+*
+TEST100E IF    (CLI,VARBL1,C'A',E),AND,                                C
+               ((LTR,R15,R15,Z),OR,(TM,VARBL3,X'01',Z)),AND,           C
+               (SP,PACK1,=P'1',Z)
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'Z'         SET TO FAIL
+         LA    R15,0               SET TO PASS
+         MVI   VARBL3,X'01'        SET TO FAIL
+         PACK  PACK1,=Z'1'         SET TO PASS
+         MVC   PREDOUT,=C'FALSE'
+         MVC   TESTNBR,=C'TEST100F'
+*
+TEST100F IF    (CLI,VARBL1,C'A',E),AND,                                C
+               ((LTR,R15,R15,Z),OR,(TM,VARBL3,X'01',Z)),AND,           C
+               (SP,PACK1,=P'1',Z)
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'A'         SET TO PASS
+         LA    R15,4               SET TO FAIL
+         MVI   VARBL3,X'01'        SET TO FAIL
+         PACK  PACK1,=Z'1'         SET TO PASS
+         MVC   PREDOUT,=C'FALSE'
+         MVC   TESTNBR,=C'TEST100G'
+*
+TEST100G IF    (CLI,VARBL1,C'A',E),AND,                                C
+               ((LTR,R15,R15,Z),OR,(TM,VARBL3,X'01',Z)),AND,           C
+               (SP,PACK1,=P'1',Z)
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'Z'         SET TO FAIL
+         LA    R15,4               SET TO FAIL
+         MVI   VARBL3,X'01'        SET TO FAIL
+         PACK  PACK1,=Z'1'         SET TO PASS
+         MVC   PREDOUT,=C'FALSE'
+         MVC   TESTNBR,=C'TEST100H'
+*
+TEST100H IF    (CLI,VARBL1,C'A',E),AND,                                C
+               ((LTR,R15,R15,Z),OR,(TM,VARBL3,X'01',Z)),AND,           C
+               (SP,PACK1,=P'1',Z)
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'A'         SET TO PASS
+         LA    R15,0               SET TO PASS
+         MVI   VARBL3,X'00'        SET TO PASS
+         PACK  PACK1,=Z'2'         SET TO FAIL
+         MVC   PREDOUT,=C'FALSE'
+         MVC   TESTNBR,=C'TEST100I'
+*
+TEST100I IF    (CLI,VARBL1,C'A',E),AND,                                C
+               ((LTR,R15,R15,Z),OR,(TM,VARBL3,X'01',Z)),AND,           C
+               (SP,PACK1,=P'1',Z)
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'Z'         SET TO FAIL
+         LA    R15,0               SET TO PASS
+         MVI   VARBL3,X'00'        SET TO PASS
+         PACK  PACK1,=Z'2'         SET TO FAIL
+         MVC   PREDOUT,=C'FALSE'
+         MVC   TESTNBR,=C'TEST100J'
+*
+TEST100J IF    (CLI,VARBL1,C'A',E),AND,                                C
+               ((LTR,R15,R15,Z),OR,(TM,VARBL3,X'01',Z)),AND,           C
+               (SP,PACK1,=P'1',Z)
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'A'         SET TO PASS
+         LA    R15,4               SET TO FAIL
+         MVI   VARBL3,X'00'        SET TO PASS
+         PACK  PACK1,=Z'2'         SET TO FAIL
+         MVC   PREDOUT,=C'FALSE'
+         MVC   TESTNBR,=C'TEST100K'
+*
+TEST100K IF    (CLI,VARBL1,C'A',E),AND,                                C
+               ((LTR,R15,R15,Z),OR,(TM,VARBL3,X'01',Z)),AND,           C
+               (SP,PACK1,=P'1',Z)
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'Z'         SET TO FAIL
+         LA    R15,4               SET TO FAIL
+         MVI   VARBL3,X'00'        SET TO PASS
+         PACK  PACK1,=Z'2'         SET TO FAIL
+         MVC   PREDOUT,=C'FALSE'
+         MVC   TESTNBR,=C'TEST100L'
+*
+TEST100L IF    (CLI,VARBL1,C'A',E),AND,                                C
+               ((LTR,R15,R15,Z),OR,(TM,VARBL3,X'01',Z)),AND,           C
+               (SP,PACK1,=P'1',Z)
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'A'         SET TO PASS
+         LA    R15,0               SET TO PASS
+         MVI   VARBL3,X'01'        SET TO FAIL
+         PACK  PACK1,=Z'2'         SET TO FAIL
+         MVC   PREDOUT,=C'FALSE'
+         MVC   TESTNBR,=C'TEST100M'
+*
+TEST100M IF    (CLI,VARBL1,C'A',E),AND,                                C
+               ((LTR,R15,R15,Z),OR,(TM,VARBL3,X'01',Z)),AND,           C
+               (SP,PACK1,=P'1',Z)
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'Z'         SET TO FAIL
+         LA    R15,0               SET TO PASS
+         MVI   VARBL3,X'01'        SET TO FAIL
+         PACK  PACK1,=Z'2'         SET TO FAIL
+         MVC   PREDOUT,=C'FALSE'
+         MVC   TESTNBR,=C'TEST100N'
+*
+TEST100N IF    (CLI,VARBL1,C'A',E),AND,                                C
+               ((LTR,R15,R15,Z),OR,(TM,VARBL3,X'01',Z)),AND,           C
+               (SP,PACK1,=P'1',Z)
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'A'         SET TO PASS
+         LA    R15,4               SET TO FAIL
+         MVI   VARBL3,X'01'        SET TO FAIL
+         PACK  PACK1,=Z'2'         SET TO FAIL
+         MVC   PREDOUT,=C'FALSE'
+         MVC   TESTNBR,=C'TEST100O'
+*
+TEST100O IF    (CLI,VARBL1,C'A',E),AND,                                C
+               ((LTR,R15,R15,Z),OR,(TM,VARBL3,X'01',Z)),AND,           C
+               (SP,PACK1,=P'1',Z)
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'Z'         SET TO FAIL
+         LA    R15,4               SET TO FAIL
+         MVI   VARBL3,X'01'        SET TO FAIL
+         PACK  PACK1,=Z'2'         SET TO FAIL
+         MVC   PREDOUT,=C'FALSE'
+         MVC   TESTNBR,=C'TEST100P'
+*
+TEST100P IF    (CLI,VARBL1,C'A',E),AND,                                C
+               ((LTR,R15,R15,Z),OR,(TM,VARBL3,X'01',Z)),AND,           C
+               (SP,PACK1,=P'1',Z)
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+*                                                                     *
+* IF (A) OR (B) AND (C) OR (D)                                        *
+*                                                                     *
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+*
+         BALR  R12,0
+         USING *,R12
+         MVI   VARBL1,C'A'         SET TO PASS
+         LA    R15,0               SET TO PASS
+         MVI   VARBL3,X'00'        SET TO PASS
+         PACK  PACK1,=Z'1'         SET TO PASS
+         MVC   PREDOUT,=C'TRUE '
+         MVC   TESTNBR,=C'TEST110A'
+*
+TEST110A IF    (CLI,VARBL1,C'A',E),OR,(LTR,R15,R15,Z),AND,             C
+               (TM,VARBL3,X'01',Z),OR,(SP,PACK1,=P'1',Z)
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'Z'         SET TO FAIL
+         LA    R15,0               SET TO PASS
+         MVI   VARBL3,X'00'        SET TO PASS
+         PACK  PACK1,=Z'1'         SET TO PASS
+         MVC   PREDOUT,=C'TRUE '
+         MVC   TESTNBR,=C'TEST110B'
+*
+TEST110B IF    (CLI,VARBL1,C'A',E),OR,(LTR,R15,R15,Z),AND,             C
+               (TM,VARBL3,X'01',Z),OR,(SP,PACK1,=P'1',Z)
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'A'         SET TO PASS
+         LA    R15,4               SET TO FAIL
+         MVI   VARBL3,X'00'        SET TO PASS
+         PACK  PACK1,=Z'1'         SET TO PASS
+         MVC   PREDOUT,=C'TRUE '
+         MVC   TESTNBR,=C'TEST110C'
+*
+TEST110C IF    (CLI,VARBL1,C'A',E),OR,(LTR,R15,R15,Z),AND,             C
+               (TM,VARBL3,X'01',Z),OR,(SP,PACK1,=P'1',Z)
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'Z'         SET TO FAIL
+         LA    R15,4               SET TO FAIL
+         MVI   VARBL3,X'00'        SET TO PASS
+         PACK  PACK1,=Z'1'         SET TO PASS
+         MVC   PREDOUT,=C'TRUE '
+         MVC   TESTNBR,=C'TEST110D'
+*
+TEST110D IF    (CLI,VARBL1,C'A',E),OR,(LTR,R15,R15,Z),AND,             C
+               (TM,VARBL3,X'01',Z),OR,(SP,PACK1,=P'1',Z)
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'A'         SET TO PASS
+         LA    R15,0               SET TO PASS
+         MVI   VARBL3,X'01'        SET TO FAIL
+         PACK  PACK1,=Z'1'         SET TO PASS
+         MVC   PREDOUT,=C'TRUE '
+         MVC   TESTNBR,=C'TEST110E'
+*
+TEST110E IF    (CLI,VARBL1,C'A',E),OR,(LTR,R15,R15,Z),AND,             C
+               (TM,VARBL3,X'01',Z),OR,(SP,PACK1,=P'1',Z)
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '         PUT   SYSPRINT,OUTPUT
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'Z'         SET TO FAIL
+         LA    R15,0               SET TO PASS
+         MVI   VARBL3,X'01'        SET TO FAIL
+         PACK  PACK1,=Z'1'         SET TO PASS
+         MVC   PREDOUT,=C'TRUE '
+         MVC   TESTNBR,=C'TEST110F'
+*
+TEST110F IF    (CLI,VARBL1,C'A',E),OR,(LTR,R15,R15,Z),AND,             C
+               (TM,VARBL3,X'01',Z),OR,(SP,PACK1,=P'1',Z)
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'A'         SET TO PASS
+         LA    R15,4               SET TO FAIL
+         MVI   VARBL3,X'01'        SET TO FAIL
+         PACK  PACK1,=Z'1'         SET TO PASS
+         MVC   PREDOUT,=C'TRUE '
+         MVC   TESTNBR,=C'TEST110G'
+*
+TEST110G IF    (CLI,VARBL1,C'A',E),OR,(LTR,R15,R15,Z),AND,             C
+               (TM,VARBL3,X'01',Z),OR,(SP,PACK1,=P'1',Z)
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'Z'         SET TO FAIL
+         LA    R15,4               SET TO FAIL
+         MVI   VARBL3,X'01'        SET TO FAIL
+         PACK  PACK1,=Z'1'         SET TO PASS
+         MVC   PREDOUT,=C'TRUE '
+         MVC   TESTNBR,=C'TEST110H'
+*
+TEST110H IF    (CLI,VARBL1,C'A',E),OR,(LTR,R15,R15,Z),AND,             C
+               (TM,VARBL3,X'01',Z),OR,(SP,PACK1,=P'1',Z)
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'A'         SET TO PASS
+         LA    R15,0               SET TO PASS
+         MVI   VARBL3,X'00'        SET TO PASS
+         PACK  PACK1,=Z'2'         SET TO FAIL
+         MVC   PREDOUT,=C'TRUE '
+         MVC   TESTNBR,=C'TEST110I'
+*
+TEST110I IF    (CLI,VARBL1,C'A',E),OR,(LTR,R15,R15,Z),AND,             C
+               (TM,VARBL3,X'01',Z),OR,(SP,PACK1,=P'1',Z)
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'Z'         SET TO FAIL
+         LA    R15,0               SET TO PASS
+         MVI   VARBL3,X'00'        SET TO PASS
+         PACK  PACK1,=Z'2'         SET TO FAIL
+         MVC   PREDOUT,=C'TRUE '
+         MVC   TESTNBR,=C'TEST110J'
+*
+TEST110J IF    (CLI,VARBL1,C'A',E),OR,(LTR,R15,R15,Z),AND,             C
+               (TM,VARBL3,X'01',Z),OR,(SP,PACK1,=P'1',Z)
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'A'         SET TO PASS
+         LA    R15,4               SET TO FAIL
+         MVI   VARBL3,X'00'        SET TO PASS
+         PACK  PACK1,=Z'2'         SET TO FAIL
+         MVC   PREDOUT,=C'TRUE '
+         MVC   TESTNBR,=C'TEST110K'
+*
+TEST110K IF    (CLI,VARBL1,C'A',E),OR,(LTR,R15,R15,Z),AND,             C
+               (TM,VARBL3,X'01',Z),OR,(SP,PACK1,=P'1',Z)
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'Z'         SET TO FAIL
+         LA    R15,4               SET TO FAIL
+         MVI   VARBL3,X'00'        SET TO PASS
+         PACK  PACK1,=Z'2'         SET TO FAIL
+         MVC   PREDOUT,=C'FALSE'
+         MVC   TESTNBR,=C'TEST110L'
+*
+TEST110L IF    (CLI,VARBL1,C'A',E),OR,(LTR,R15,R15,Z),AND,             C
+               (TM,VARBL3,X'01',Z),OR,(SP,PACK1,=P'1',Z)
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'A'         SET TO PASS
+         LA    R15,0               SET TO PASS
+         MVI   VARBL3,X'01'        SET TO FAIL
+         PACK  PACK1,=Z'2'         SET TO FAIL
+         MVC   PREDOUT,=C'TRUE '
+         MVC   TESTNBR,=C'TEST110M'
+*
+TEST110M IF    (CLI,VARBL1,C'A',E),OR,(LTR,R15,R15,Z),AND,             C
+               (TM,VARBL3,X'01',Z),OR,(SP,PACK1,=P'1',Z)
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'Z'         SET TO FAIL
+         LA    R15,0               SET TO PASS
+         MVI   VARBL3,X'01'        SET TO FAIL
+         PACK  PACK1,=Z'2'         SET TO FAIL
+         MVC   PREDOUT,=C'FALSE'
+         MVC   TESTNBR,=C'TEST110N'
+*
+TEST110N IF    (CLI,VARBL1,C'A',E),OR,(LTR,R15,R15,Z),AND,             C
+               (TM,VARBL3,X'01',Z),OR,(SP,PACK1,=P'1',Z)
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'A'         SET TO PASS
+         LA    R15,4               SET TO FAIL
+         MVI   VARBL3,X'01'        SET TO FAIL
+         PACK  PACK1,=Z'2'         SET TO FAIL
+         MVC   PREDOUT,=C'TRUE '
+         MVC   TESTNBR,=C'TEST110O'
+*
+TEST110O IF    (CLI,VARBL1,C'A',E),OR,(LTR,R15,R15,Z),AND,             C
+               (TM,VARBL3,X'01',Z),OR,(SP,PACK1,=P'1',Z)
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'Z'         SET TO FAIL
+         LA    R15,4               SET TO FAIL
+         MVI   VARBL3,X'01'        SET TO FAIL
+         PACK  PACK1,=Z'2'         SET TO FAIL
+         MVC   PREDOUT,=C'FALSE'
+         MVC   TESTNBR,=C'TEST110P'
+*
+TEST110P IF    (CLI,VARBL1,C'A',E),OR,(LTR,R15,R15,Z),AND,             C
+               (TM,VARBL3,X'01',Z),OR,(SP,PACK1,=P'1',Z)
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+*                                                                     *
+* IF ((A) OR (B)) AND ((C) OR (D))                                    *
+*                                                                     *
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+*
+         BALR  R12,0
+         USING *,R12
+         MVI   VARBL1,C'A'         SET TO PASS
+         LA    R15,0               SET TO PASS
+         MVI   VARBL3,X'00'        SET TO PASS
+         PACK  PACK1,=Z'1'         SET TO PASS
+         MVC   PREDOUT,=C'TRUE '
+         MVC   TESTNBR,=C'TEST120A'
+*
+TEST120A IF    ((CLI,VARBL1,C'A',E),OR,(LTR,R15,R15,Z)),AND,           C
+               ((TM,VARBL3,X'01',Z),OR,(SP,PACK1,=P'1',Z))
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'Z'         SET TO FAIL
+         LA    R15,0               SET TO PASS
+         MVI   VARBL3,X'00'        SET TO PASS
+         PACK  PACK1,=Z'1'         SET TO PASS
+         MVC   PREDOUT,=C'TRUE '
+         MVC   TESTNBR,=C'TEST120B'
+*
+TEST120B IF    ((CLI,VARBL1,C'A',E),OR,(LTR,R15,R15,Z)),AND,           C
+               ((TM,VARBL3,X'01',Z),OR,(SP,PACK1,=P'1',Z))
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'A'         SET TO PASS
+         LA    R15,4               SET TO FAIL
+         MVI   VARBL3,X'00'        SET TO PASS
+         PACK  PACK1,=Z'1'         SET TO PASS
+         MVC   PREDOUT,=C'TRUE '
+         MVC   TESTNBR,=C'TEST120C'
+*
+TEST120C IF    ((CLI,VARBL1,C'A',E),OR,(LTR,R15,R15,Z)),AND,           C
+               ((TM,VARBL3,X'01',Z),OR,(SP,PACK1,=P'1',Z))
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'Z'         SET TO FAIL
+         LA    R15,4               SET TO FAIL
+         MVI   VARBL3,X'00'        SET TO PASS
+         PACK  PACK1,=Z'1'         SET TO PASS
+         MVC   PREDOUT,=C'FALSE'
+         MVC   TESTNBR,=C'TEST120D'
+*
+TEST120D IF    ((CLI,VARBL1,C'A',E),OR,(LTR,R15,R15,Z)),AND,           C
+               ((TM,VARBL3,X'01',Z),OR,(SP,PACK1,=P'1',Z))
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'A'         SET TO PASS
+         LA    R15,0               SET TO PASS
+         MVI   VARBL3,X'01'        SET TO FAIL
+         PACK  PACK1,=Z'1'         SET TO PASS
+         MVC   PREDOUT,=C'TRUE '
+         MVC   TESTNBR,=C'TEST120E'
+*
+TEST120E IF    ((CLI,VARBL1,C'A',E),OR,(LTR,R15,R15,Z)),AND,           C
+               ((TM,VARBL3,X'01',Z),OR,(SP,PACK1,=P'1',Z))
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '         PUT   SYSPRINT,OUTPUT
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'Z'         SET TO FAIL
+         LA    R15,0               SET TO PASS
+         MVI   VARBL3,X'01'        SET TO FAIL
+         PACK  PACK1,=Z'1'         SET TO PASS
+         MVC   PREDOUT,=C'TRUE '
+         MVC   TESTNBR,=C'TEST120F'
+*
+TEST120F IF    ((CLI,VARBL1,C'A',E),OR,(LTR,R15,R15,Z)),AND,           C
+               ((TM,VARBL3,X'01',Z),OR,(SP,PACK1,=P'1',Z))
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'A'         SET TO PASS
+         LA    R15,4               SET TO FAIL
+         MVI   VARBL3,X'01'        SET TO FAIL
+         PACK  PACK1,=Z'1'         SET TO PASS
+         MVC   PREDOUT,=C'TRUE '
+         MVC   TESTNBR,=C'TEST120G'
+*
+TEST120G IF    ((CLI,VARBL1,C'A',E),OR,(LTR,R15,R15,Z)),AND,           C
+               ((TM,VARBL3,X'01',Z),OR,(SP,PACK1,=P'1',Z))
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'Z'         SET TO FAIL
+         LA    R15,4               SET TO FAIL
+         MVI   VARBL3,X'01'        SET TO FAIL
+         PACK  PACK1,=Z'1'         SET TO PASS
+         MVC   PREDOUT,=C'FALSE'
+         MVC   TESTNBR,=C'TEST120H'
+*
+TEST120H IF    ((CLI,VARBL1,C'A',E),OR,(LTR,R15,R15,Z)),AND,           C
+               ((TM,VARBL3,X'01',Z),OR,(SP,PACK1,=P'1',Z))
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'A'         SET TO PASS
+         LA    R15,0               SET TO PASS
+         MVI   VARBL3,X'00'        SET TO PASS
+         PACK  PACK1,=Z'2'         SET TO FAIL
+         MVC   PREDOUT,=C'TRUE '
+         MVC   TESTNBR,=C'TEST120I'
+*
+TEST120I IF    ((CLI,VARBL1,C'A',E),OR,(LTR,R15,R15,Z)),AND,           C
+               ((TM,VARBL3,X'01',Z),OR,(SP,PACK1,=P'1',Z))
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'Z'         SET TO FAIL
+         LA    R15,0               SET TO PASS
+         MVI   VARBL3,X'00'        SET TO PASS
+         PACK  PACK1,=Z'2'         SET TO FAIL
+         MVC   PREDOUT,=C'TRUE '
+         MVC   TESTNBR,=C'TEST120J'
+*
+TEST120J IF    ((CLI,VARBL1,C'A',E),OR,(LTR,R15,R15,Z)),AND,           C
+               ((TM,VARBL3,X'01',Z),OR,(SP,PACK1,=P'1',Z))
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'A'         SET TO PASS
+         LA    R15,4               SET TO FAIL
+         MVI   VARBL3,X'00'        SET TO PASS
+         PACK  PACK1,=Z'2'         SET TO FAIL
+         MVC   PREDOUT,=C'TRUE '
+         MVC   TESTNBR,=C'TEST120K'
+*
+TEST120K IF    ((CLI,VARBL1,C'A',E),OR,(LTR,R15,R15,Z)),AND,           C
+               ((TM,VARBL3,X'01',Z),OR,(SP,PACK1,=P'1',Z))
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'Z'         SET TO FAIL
+         LA    R15,4               SET TO FAIL
+         MVI   VARBL3,X'00'        SET TO PASS
+         PACK  PACK1,=Z'2'         SET TO FAIL
+         MVC   PREDOUT,=C'FALSE'
+         MVC   TESTNBR,=C'TEST120L'
+*
+TEST120L IF    ((CLI,VARBL1,C'A',E),OR,(LTR,R15,R15,Z)),AND,           C
+               ((TM,VARBL3,X'01',Z),OR,(SP,PACK1,=P'1',Z))
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'A'         SET TO PASS
+         LA    R15,0               SET TO PASS
+         MVI   VARBL3,X'01'        SET TO FAIL
+         PACK  PACK1,=Z'2'         SET TO FAIL
+         MVC   PREDOUT,=C'FALSE'
+         MVC   TESTNBR,=C'TEST120M'
+*
+TEST120M IF    ((CLI,VARBL1,C'A',E),OR,(LTR,R15,R15,Z)),AND,           C
+               ((TM,VARBL3,X'01',Z),OR,(SP,PACK1,=P'1',Z))
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'Z'         SET TO FAIL
+         LA    R15,0               SET TO PASS
+         MVI   VARBL3,X'01'        SET TO FAIL
+         PACK  PACK1,=Z'2'         SET TO FAIL
+         MVC   PREDOUT,=C'FALSE'
+         MVC   TESTNBR,=C'TEST120N'
+*
+TEST120N IF    ((CLI,VARBL1,C'A',E),OR,(LTR,R15,R15,Z)),AND,           C
+               ((TM,VARBL3,X'01',Z),OR,(SP,PACK1,=P'1',Z))
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'A'         SET TO PASS
+         LA    R15,4               SET TO FAIL
+         MVI   VARBL3,X'01'        SET TO FAIL
+         PACK  PACK1,=Z'2'         SET TO FAIL
+         MVC   PREDOUT,=C'FALSE'
+         MVC   TESTNBR,=C'TEST120O'
+*
+TEST120O IF    ((CLI,VARBL1,C'A',E),OR,(LTR,R15,R15,Z)),AND,           C
+               ((TM,VARBL3,X'01',Z),OR,(SP,PACK1,=P'1',Z))
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'Z'         SET TO FAIL
+         LA    R15,4               SET TO FAIL
+         MVI   VARBL3,X'01'        SET TO FAIL
+         PACK  PACK1,=Z'2'         SET TO FAIL
+         MVC   PREDOUT,=C'FALSE'
+         MVC   TESTNBR,=C'TEST120P'
+*
+TEST120P IF    ((CLI,VARBL1,C'A',E),OR,(LTR,R15,R15,Z)),AND,           C
+               ((TM,VARBL3,X'01',Z),OR,(SP,PACK1,=P'1',Z))
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+*                                                                     *
+* TWO LEVELS OF RECURSION ARE REQUIRED:                               *
+*                                                                     *
+* IF (A) AND ((B) OR (C) AND ((D) OR (E)))                            *
+*                                                                     *
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+*
+         MVI   VARBL1,C'A'         SET TO PASS
+         LA    R15,0               SET TO PASS
+         MVI   VARBL3,X'00'        SET TO PASS
+         PACK  PACK1,=Z'1'         SET TO PASS
+         MVI   TSWITCH,X'10'       SET TO PASS
+         MVC   PREDOUT,=C'TRUE '
+         MVC   TESTNBR,=C'TEST130A'
+*
+TEST130A IF    (CLI,VARBL1,C'A',E),AND,                                C
+               ((LTR,R15,R15,Z),OR,(TM,VARBL3,X'01',Z),AND,            C
+               ((SP,PACK1,=P'1',Z),OR,(CLI,TSWITCH,X'10',E)))
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'Z'         SET TO FAIL
+         LA    R15,0               SET TO PASS
+         MVI   VARBL3,X'00'        SET TO PASS
+         PACK  PACK1,=Z'1'         SET TO PASS
+         MVI   TSWITCH,X'10'       SET TO PASS
+         MVC   PREDOUT,=C'FALSE'
+         MVC   TESTNBR,=C'TEST130B'
+TEST130B IF    (CLI,VARBL1,C'A',E),AND,                                C
+               ((LTR,R15,R15,Z),OR,(TM,VARBL3,X'01',Z),AND,            C
+               ((SP,PACK1,=P'1',Z),OR,(CLI,TSWITCH,X'10',E)))
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'A'         SET TO PASS
+         LA    R15,1               SET TO FAIL
+         MVI   VARBL3,X'00'        SET TO PASS
+         PACK  PACK1,=Z'1'         SET TO PASS
+         MVI   TSWITCH,X'10'       SET TO PASS
+         MVC   PREDOUT,=C'TRUE '
+         MVC   TESTNBR,=C'TEST130C'
+*
+TEST130C IF    (CLI,VARBL1,C'A',E),AND,                                C
+               ((LTR,R15,R15,Z),OR,(TM,VARBL3,X'01',Z),AND,            C
+               ((SP,PACK1,=P'1',Z),OR,(CLI,TSWITCH,X'10',E)))
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'Z'         SET TO FAIL
+         LA    R15,1               SET TO FAIL
+         MVI   VARBL3,X'00'        SET TO PASS
+         PACK  PACK1,=Z'1'         SET TO PASS
+         MVI   TSWITCH,X'10'       SET TO PASS
+         MVC   PREDOUT,=C'FALSE'
+         MVC   TESTNBR,=C'TEST130D'
+*
+TEST130D IF    (CLI,VARBL1,C'A',E),AND,                                C
+               ((LTR,R15,R15,Z),OR,(TM,VARBL3,X'01',Z),AND,            C
+               ((SP,PACK1,=P'1',Z),OR,(CLI,TSWITCH,X'10',E)))
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'A'         SET TO PASS
+         LA    R15,0               SET TO PASS
+         MVI   VARBL3,X'01'        SET TO FAIL
+         PACK  PACK1,=Z'1'         SET TO PASS
+         MVI   TSWITCH,X'10'       SET TO PASS
+         MVC   PREDOUT,=C'TRUE '
+         MVC   TESTNBR,=C'TEST130E'
+*
+TEST130E IF    (CLI,VARBL1,C'A',E),AND,                                C
+               ((LTR,R15,R15,Z),OR,(TM,VARBL3,X'01',Z),AND,            C
+               ((SP,PACK1,=P'1',Z),OR,(CLI,TSWITCH,X'10',E)))
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'Z'         SET TO FAIL
+         LA    R15,0               SET TO PASS
+         MVI   VARBL3,X'01'        SET TO FAIL
+         PACK  PACK1,=Z'1'         SET TO PASS
+         MVI   TSWITCH,X'10'       SET TO PASS
+         MVC   PREDOUT,=C'FALSE'
+         MVC   TESTNBR,=C'TEST130F'
+*
+TEST130F IF    (CLI,VARBL1,C'A',E),AND,                                C
+               ((LTR,R15,R15,Z),OR,(TM,VARBL3,X'01',Z),AND,            C
+               ((SP,PACK1,=P'1',Z),OR,(CLI,TSWITCH,X'10',E)))
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'A'         SET TO PASS
+         LA    R15,1               SET TO FAIL
+         MVI   VARBL3,X'01'        SET TO FAIL
+         PACK  PACK1,=Z'1'         SET TO PASS
+         MVI   TSWITCH,X'10'       SET TO PASS
+         MVC   PREDOUT,=C'FALSE'
+         MVC   TESTNBR,=C'TEST130G'
+TEST130G IF    (CLI,VARBL1,C'A',E),AND,                                C
+               ((LTR,R15,R15,Z),OR,(TM,VARBL3,X'01',Z),AND,            C
+               ((SP,PACK1,=P'1',Z),OR,(CLI,TSWITCH,X'10',E)))
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'Z'         SET TO FAIL
+         LA    R15,1               SET TO FAIL
+         MVI   VARBL3,X'01'        SET TO FAIL
+         PACK  PACK1,=Z'1'         SET TO PASS
+         MVI   TSWITCH,X'10'       SET TO PASS
+         MVC   PREDOUT,=C'FALSE'
+         MVC   TESTNBR,=C'TEST130H'
+*
+TEST130H IF    (CLI,VARBL1,C'A',E),AND,                                C
+               ((LTR,R15,R15,Z),OR,(TM,VARBL3,X'01',Z),AND,            C
+               ((SP,PACK1,=P'1',Z),OR,(CLI,TSWITCH,X'10',E)))
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'A'         SET TO PASS
+         LA    R15,0               SET TO PASS
+         MVI   VARBL3,X'00'        SET TO PASS
+         PACK  PACK1,=Z'2'         SET TO FAIL
+         MVI   TSWITCH,X'10'       SET TO PASS
+         MVC   PREDOUT,=C'TRUE '
+         MVC   TESTNBR,=C'TEST130I'
+*
+TEST130I IF    (CLI,VARBL1,C'A',E),AND,                                C
+               ((LTR,R15,R15,Z),OR,(TM,VARBL3,X'01',Z),AND,            C
+               ((SP,PACK1,=P'1',Z),OR,(CLI,TSWITCH,X'10',E)))
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'Z'         SET TO FAIL
+         LA    R15,0               SET TO PASS
+         MVI   VARBL3,X'00'        SET TO PASS
+         PACK  PACK1,=Z'2'         SET TO FAIL
+         MVI   TSWITCH,X'10'       SET TO PASS
+         MVC   PREDOUT,=C'FALSE'
+         MVC   TESTNBR,=C'TEST130J'
+*
+TEST130J IF    (CLI,VARBL1,C'A',E),AND,                                C
+               ((LTR,R15,R15,Z),OR,(TM,VARBL3,X'01',Z),AND,            C
+               ((SP,PACK1,=P'1',Z),OR,(CLI,TSWITCH,X'10',E)))
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'A'         SET TO PASS
+         LA    R15,1               SET TO FAIL
+         MVI   VARBL3,X'00'        SET TO PASS
+         PACK  PACK1,=Z'2'         SET TO FAIL
+         MVI   TSWITCH,X'10'       SET TO PASS
+         MVC   PREDOUT,=C'TRUE '
+         MVC   TESTNBR,=C'TEST130K'
+*
+TEST130K IF    (CLI,VARBL1,C'A',E),AND,                                C
+               ((LTR,R15,R15,Z),OR,(TM,VARBL3,X'01',Z),AND,            C
+               ((SP,PACK1,=P'1',Z),OR,(CLI,TSWITCH,X'10',E)))
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'Z'         SET TO FAIL
+         LA    R15,1               SET TO FAIL
+         MVI   VARBL3,X'00'        SET TO PASS
+         PACK  PACK1,=Z'2'         SET TO FAIL
+         MVI   TSWITCH,X'10'       SET TO PASS
+         MVC   PREDOUT,=C'FALSE'
+         MVC   TESTNBR,=C'TEST130L'
+*
+TEST130L IF    (CLI,VARBL1,C'A',E),AND,                                C
+               ((LTR,R15,R15,Z),OR,(TM,VARBL3,X'01',Z),AND,            C
+               ((SP,PACK1,=P'1',Z),OR,(CLI,TSWITCH,X'10',E)))
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'A'         SET TO PASS
+         LA    R15,0               SET TO PASS
+         MVI   VARBL3,X'01'        SET TO FAIL
+         PACK  PACK1,=Z'2'         SET TO FAIL
+         MVI   TSWITCH,X'10'       SET TO PASS
+         MVC   PREDOUT,=C'TRUE '
+         MVC   TESTNBR,=C'TEST130M'
+*
+TEST130M IF    (CLI,VARBL1,C'A',E),AND,                                C
+               ((LTR,R15,R15,Z),OR,(TM,VARBL3,X'01',Z),AND,            C
+               ((SP,PACK1,=P'1',Z),OR,(CLI,TSWITCH,X'10',E)))
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         BALR  R12,0
+         USING *,R12
+         MVI   VARBL1,C'Z'         SET TO FAIL
+         LA    R15,0               SET TO PASS
+         MVI   VARBL3,X'01'        SET TO FAIL
+         PACK  PACK1,=Z'2'         SET TO FAIL
+         MVI   TSWITCH,X'10'       SET TO PASS
+         MVC   PREDOUT,=C'FALSE'
+         MVC   TESTNBR,=C'TEST130N'
+*
+TEST130N IF    (CLI,VARBL1,C'A',E),AND,                                C
+               ((LTR,R15,R15,Z),OR,(TM,VARBL3,X'01',Z),AND,            C
+               ((SP,PACK1,=P'1',Z),OR,(CLI,TSWITCH,X'10',E)))
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'A'         SET TO PASS
+         LA    R15,1               SET TO FAIL
+         MVI   VARBL3,X'01'        SET TO FAIL
+         PACK  PACK1,=Z'2'         SET TO FAIL
+         MVI   TSWITCH,X'10'       SET TO PASS
+         MVC   PREDOUT,=C'FALSE'
+         MVC   TESTNBR,=C'TEST130O'
+*
+TEST130O IF    (CLI,VARBL1,C'A',E),AND,                                C
+               ((LTR,R15,R15,Z),OR,(TM,VARBL3,X'01',Z),AND,            C
+               ((SP,PACK1,=P'1',Z),OR,(CLI,TSWITCH,X'10',E)))
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'Z'         SET TO FAIL
+         LA    R15,1               SET TO FAIL
+         MVI   VARBL3,X'01'        SET TO FAIL
+         PACK  PACK1,=Z'2'         SET TO FAIL
+         MVI   TSWITCH,X'10'       SET TO PASS
+         MVC   PREDOUT,=C'FALSE'
+         MVC   TESTNBR,=C'TEST130P'
+*
+TEST130P IF    (CLI,VARBL1,C'A',E),AND,                                C
+               ((LTR,R15,R15,Z),OR,(TM,VARBL3,X'01',Z),AND,            C
+               ((SP,PACK1,=P'1',Z),OR,(CLI,TSWITCH,X'10',E)))
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'A'         SET TO PASS
+         LA    R15,0               SET TO PASS
+         MVI   VARBL3,X'00'        SET TO PASS
+         PACK  PACK1,=Z'1'         SET TO PASS
+         MVI   TSWITCH,X'00'       SET TO FAIL
+         MVC   PREDOUT,=C'TRUE '
+         MVC   TESTNBR,=C'TEST130Q'
+*
+TEST130Q IF    (CLI,VARBL1,C'A',E),AND,                                C
+               ((LTR,R15,R15,Z),OR,(TM,VARBL3,X'01',Z),AND,            C
+               ((SP,PACK1,=P'1',Z),OR,(CLI,TSWITCH,X'10',E)))
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'Z'         SET TO FAIL
+         LA    R15,0               SET TO PASS
+         MVI   VARBL3,X'00'        SET TO PASS
+         PACK  PACK1,=Z'1'         SET TO PASS
+         MVI   TSWITCH,X'00'       SET TO FAIL
+         MVC   PREDOUT,=C'FALSE'
+         MVC   TESTNBR,=C'TEST230R'
+*
+TEST130R IF    (CLI,VARBL1,C'A',E),AND,                                C
+               ((LTR,R15,R15,Z),OR,(TM,VARBL3,X'01',Z),AND,            C
+               ((SP,PACK1,=P'1',Z),OR,(CLI,TSWITCH,X'10',E)))
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'A'         SET TO PASS
+         LA    R15,1               SET TO FAIL
+         MVI   VARBL3,X'00'        SET TO PASS
+         PACK  PACK1,=Z'1'         SET TO PASS
+         MVI   TSWITCH,X'00'       SET TO FAIL
+         MVC   PREDOUT,=C'TRUE '
+         MVC   TESTNBR,=C'TEST130S'
+*
+TEST130S IF    (CLI,VARBL1,C'A',E),AND,                                C
+               ((LTR,R15,R15,Z),OR,(TM,VARBL3,X'01',Z),AND,            C
+               ((SP,PACK1,=P'1',Z),OR,(CLI,TSWITCH,X'10',E)))
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'Z'         SET TO FAIL
+         LA    R15,1               SET TO FAIL
+         MVI   VARBL3,X'00'        SET TO PASS
+         PACK  PACK1,=Z'1'         SET TO PASS
+         MVI   TSWITCH,X'00'       SET TO FAIL
+         MVC   PREDOUT,=C'FALSE'
+         MVC   TESTNBR,=C'TEST130T'
+*
+TEST130T IF    (CLI,VARBL1,C'A',E),AND,                                C
+               ((LTR,R15,R15,Z),OR,(TM,VARBL3,X'01',Z),AND,            C
+               ((SP,PACK1,=P'1',Z),OR,(CLI,TSWITCH,X'10',E)))
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'A'         SET TO PASS
+         LA    R15,0               SET TO PASS
+         MVI   VARBL3,X'01'        SET TO FAIL
+         PACK  PACK1,=Z'1'         SET TO PASS
+         MVI   TSWITCH,X'00'       SET TO FAIL
+         MVC   PREDOUT,=C'TRUE '
+         MVC   TESTNBR,=C'TEST130U'
+*
+TEST130U IF    (CLI,VARBL1,C'A',E),AND,                                C
+               ((LTR,R15,R15,Z),OR,(TM,VARBL3,X'01',Z),AND,            C
+               ((SP,PACK1,=P'1',Z),OR,(CLI,TSWITCH,X'10',E)))
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'Z'         SET TO FAIL
+         LA    R15,0               SET TO PASS
+         MVI   VARBL3,X'01'        SET TO FAIL
+         PACK  PACK1,=Z'1'         SET TO PASS
+         MVI   TSWITCH,X'00'       SET TO FAIL
+         MVC   PREDOUT,=C'FALSE'
+         MVC   TESTNBR,=C'TEST130V'
+*
+TEST130V IF    (CLI,VARBL1,C'A',E),AND,                                C
+               ((LTR,R15,R15,Z),OR,(TM,VARBL3,X'01',Z),AND,            C
+               ((SP,PACK1,=P'1',Z),OR,(CLI,TSWITCH,X'10',E)))
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'A'         SET TO PASS
+         LA    R15,1               SET TO FAIL
+         MVI   VARBL3,X'01'        SET TO FAIL
+         PACK  PACK1,=Z'1'         SET TO PASS
+         MVI   TSWITCH,X'00'       SET TO FAIL
+         MVC   PREDOUT,=C'FALSE'
+         MVC   TESTNBR,=C'TEST230W'
+*
+TEST130W IF    (CLI,VARBL1,C'A',E),AND,                                C
+               ((LTR,R15,R15,Z),OR,(TM,VARBL3,X'01',Z),AND,            C
+               ((SP,PACK1,=P'1',Z),OR,(CLI,TSWITCH,X'10',E)))
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'Z'         SET TO FAIL
+         LA    R15,1               SET TO FAIL
+         MVI   VARBL3,X'01'        SET TO FAIL
+         PACK  PACK1,=Z'1'         SET TO PASS
+         MVI   TSWITCH,X'00'       SET TO FAIL
+         MVC   PREDOUT,=C'FALSE'
+         MVC   TESTNBR,=C'TEST130X'
+*
+TEST130X IF    (CLI,VARBL1,C'A',E),AND,                                C
+               ((LTR,R15,R15,Z),OR,(TM,VARBL3,X'01',Z),AND,            C
+               ((SP,PACK1,=P'1',Z),OR,(CLI,TSWITCH,X'10',E)))
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'A'         SET TO PASS
+         LA    R15,0               SET TO PASS
+         MVI   VARBL3,X'00'        SET TO PASS
+         PACK  PACK1,=Z'2'         SET TO FAIL
+         MVI   TSWITCH,X'00'       SET TO FAIL
+         MVC   PREDOUT,=C'TRUE '
+         MVC   TESTNBR,=C'TEST130Y'
+*
+TEST130Y IF    (CLI,VARBL1,C'A',E),AND,                                C
+               ((LTR,R15,R15,Z),OR,(TM,VARBL3,X'01',Z),AND,            C
+               ((SP,PACK1,=P'1',Z),OR,(CLI,TSWITCH,X'10',E)))
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'Z'         SET TO FAIL
+         LA    R15,0               SET TO PASS
+         MVI   VARBL3,X'00'        SET TO PASS
+         PACK  PACK1,=Z'2'         SET TO FAIL
+         MVI   TSWITCH,X'00'       SET TO FAIL
+         MVC   PREDOUT,=C'FALSE'
+         MVC   TESTNBR,=C'TEST130Z'
+*
+TEST130Z IF    (CLI,VARBL1,C'A',E),AND,                                C
+               ((LTR,R15,R15,Z),OR,(TM,VARBL3,X'01',Z),AND,            C
+               ((SP,PACK1,=P'1',Z),OR,(CLI,TSWITCH,X'10',E)))
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'A'         SET TO PASS
+         LA    R15,1               SET TO FAIL
+         MVI   VARBL3,X'00'        SET TO PASS
+         PACK  PACK1,=Z'2'         SET TO FAIL
+         MVI   TSWITCH,X'00'       SET TO FAIL
+         MVC   PREDOUT,=C'FALSE'
+         MVC   TESTNBR,=C'TEST1300'
+*
+TEST1300 IF    (CLI,VARBL1,C'A',E),AND,                                C
+               ((LTR,R15,R15,Z),OR,(TM,VARBL3,X'01',Z),AND,            C
+               ((SP,PACK1,=P'1',Z),OR,(CLI,TSWITCH,X'10',E)))
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'Z'         SET TO FAIL
+         LA    R15,1               SET TO FAIL
+         MVI   VARBL3,X'00'        SET TO PASS
+         PACK  PACK1,=Z'2'         SET TO FAIL
+         MVI   TSWITCH,X'00'       SET TO FAIL
+         MVC   PREDOUT,=C'FALSE'
+         MVC   TESTNBR,=C'TEST1301'
+*
+TEST1301 IF    (CLI,VARBL1,C'A',E),AND,                                C
+               ((LTR,R15,R15,Z),OR,(TM,VARBL3,X'01',Z),AND,            C
+               ((SP,PACK1,=P'1',Z),OR,(CLI,TSWITCH,X'10',E)))
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'A'         SET TO PASS
+         LA    R15,0               SET TO PASS
+         MVI   VARBL3,X'01'        SET TO FAIL
+         PACK  PACK1,=Z'2'         SET TO FAIL
+         MVI   TSWITCH,X'00'       SET TO FAIL
+         MVC   PREDOUT,=C'TRUE '
+         MVC   TESTNBR,=C'TEST1302'
+*
+TEST1302 IF    (CLI,VARBL1,C'A',E),AND,                                C
+               ((LTR,R15,R15,Z),OR,(TM,VARBL3,X'01',Z),AND,            C
+               ((SP,PACK1,=P'1',Z),OR,(CLI,TSWITCH,X'10',E)))
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'Z'         SET TO FAIL
+         LA    R15,0               SET TO PASS
+         MVI   VARBL3,X'01'        SET TO FAIL
+         PACK  PACK1,=Z'2'         SET TO FAIL
+         MVI   TSWITCH,X'00'       SET TO FAIL
+         MVC   PREDOUT,=C'FALSE'
+         MVC   TESTNBR,=C'TEST1303'
+*
+TEST1303 IF    (CLI,VARBL1,C'A',E),AND,                                C
+               ((LTR,R15,R15,Z),OR,(TM,VARBL3,X'01',Z),AND,            C
+               ((SP,PACK1,=P'1',Z),OR,(CLI,TSWITCH,X'10',E)))
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'A'         SET TO PASS
+         LA    R15,1               SET TO FAIL
+         MVI   VARBL3,X'01'        SET TO FAIL
+         PACK  PACK1,=Z'2'         SET TO FAIL
+         MVI   TSWITCH,X'00'       SET TO FAIL
+         MVC   PREDOUT,=C'FALSE'
+         MVC   TESTNBR,=C'TEST1304'
+*
+TEST1304 IF    (CLI,VARBL1,C'A',E),AND,                                C
+               ((LTR,R15,R15,Z),OR,(TM,VARBL3,X'01',Z),AND,            C
+               ((SP,PACK1,=P'1',Z),OR,(CLI,TSWITCH,X'10',E)))
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         MVI   VARBL1,C'Z'         SET TO FAIL
+         LA    R15,1               SET TO FAIL
+         MVI   VARBL3,X'01'        SET TO FAIL
+         PACK  PACK1,=Z'2'         SET TO FAIL
+         MVI   TSWITCH,X'00'       SET TO FAIL
+         MVC   PREDOUT,=C'FALSE'
+         MVC   TESTNBR,=C'TEST1305'
+*
+TEST1305 IF    (CLI,VARBL1,C'A',E),AND,                                C
+               ((LTR,R15,R15,Z),OR,(TM,VARBL3,X'01',Z),AND,            C
+               ((SP,PACK1,=P'1',Z),OR,(CLI,TSWITCH,X'10',E)))
+           MVC   ACTOUT,=C'TRUE '
+         ELSE
+           MVC   ACTOUT,=C'FALSE'
+         ENDIF
+         IF    (CLC,PREDOUT,ACTOUT,NE)
+           MVC   ERROR,=C'<=== ERROR'
+         ENDIF
+         PUT   SYSPRINT,OUTPUT
+         MVC   ERROR,=CL10' '
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+*                                                                     *
+*      THESE FOLLOWING STATEMENTS ARE NORMAL zOS TERMINATION.         *
+*                                                                     *
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+*
+         BALR  R12,0
+         USING *,R12
+         CLOSE SYSPRINT
+*
+         L     R13,SAVEAREA+4      ADDRESS OF CALLER'S SAVE AREA
+         DROP  R13
+         LM    R14,R12,12(R13)     RESTORE R14 WRAPPED AROUND TO R12
+         DROP  R12                 NO LONGER VALID
+         SLR   R15,R15             SET RETURN CODE TO ZERO
+         BR    R14                 RETURN TO CALLER
+*
+$$WA$$   CSECT
+         LTORG
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+*                                                                     *
+*      THESE FOLLOWING STATEMENTS DEFINE VARIABLES REQUIRED.          *
+*                                                                     *
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+PACK1    DC    PL4'0'
+OUTPUT   DC    CL133' '
+         ORG   OUTPUT
+         DC    C' '
+TESTNBR  DC    CL8' '
+         DC    C' PREDICTED OUTCOME: '
+PREDOUT  DC    CL5' '
+         DC    C'; ACTUAL OUTCOME: '
+ACTOUT   DC    CL5' ',C' '
+ERROR    DC    CL10' '
+         ORG   OUTPUT+133
+VARBL1   DC    C' '
+VARBL2   DC    C' '
+VARBL3   DC    C' '
+VARBL4   DC    C' '
+TSWITCH  DC    X'00'
+         PUSH  PRINT
+         PRINT NOGEN
+SYSPRINT DCB   DDNAME=SYSPRINT,    DEFAULT DDNAME                      C
+               LRECL=133,          LOGICAL RECORD LENGTH               C
+               RECFM=FBA,DSORG=PS,MACRF=PM
+         POP   PRINT
+IFTEST   CSECT
+         END   IFTEST
+./ ADD NAME=IFDOC
+         AGO   .SKIP
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+*                                                                     *
+*   N     N   OOOO   TTTTTTT  EEEEEEE                                 *
+*   NN    N  O    O     T     E                                       *
+*   N N   N  O    O     T     E                                       *
+*   N  N  N  O    O     T     EEEEE     =====                         *
+*   N   N N  O    O     T     E                                       *
+*   N    NN  O    O     T     E                                       *
+*   N     N   OOOO      T     EEEEEEE                                 *
+*                                                                     *
+*                                                                     *
+*   THIS PROGRAM IS INTENDED TO BE USED FOR DISPLAY PURPOSES ONLY;    *
+*   IT IS NOT INTENDED TO BE EXECUTED.                                *
+*                                                                     *
+*   PLEASE STUDY EACH DESCRIPTION OF A PARTICULAR ASPECT OF THE "IF"  *
+*   MACRO IN THE OUTPUT LISTING OF THE ASSEMBLY, THE CODING OF THE    *
+*   MACRO TO IMPLEMENT THE DESIRED LOGIC, AND THE CODE GENERATED BY   *
+*   THE MACRO EXPANSION.                                              *
+*                                                                     *
+*   THE EXECUTION OF THE MAIN BODY OF CODE PRODUCED BY THIS PROGRAM   *
+*   IS PREVENTED BY PLACING AN "B    0" (ABEND) INSTRUCTION JUST      *
+*   AFTER THE zOS INITIALIZATION INSTRUCTIONS.                        *
+*                                                                     *
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+*   Copyright (C) <2021>  Daniel H. Snyder
+*   Structured Programming Macros for the IBM High Level Assembler
+*   Daniel.H.Snyder@protonmail.com
+*
+* This program is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* any later version.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with this program. See <https://www.gnu.org/licenses/>.
+*
+.SKIP    ANOP
+IFDOC    TITLE 'EXAMPLES OF "IF" LOGIC MACRO INSTRUCTIONS'
+         GBLA  &$MBLATH,&$MBL2
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+*                                                                     *
+*      THESE FOLLOWING STATEMENTS ARE NORMAL zOS INITIALIZATION       *
+*                                                                     *
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+*
+R0       EQU   0
+R1       EQU   1       STANDARD
+R2       EQU   2        EQUATES
+R3       EQU   3         FOR
+R4       EQU   4          GENERAL
+R5       EQU   5           PURPOSE
+R6       EQU   6            REGISTERS.
+R7       EQU   7             YOU
+R8       EQU   8              MIGHT
+R9       EQU   9               AS
+R10      EQU   10               WELL
+R11      EQU   11                JUST
+R12      EQU   12                 GET
+R13      EQU   13                  USED
+R14      EQU   14                   TO
+R15      EQU   15                    IT.
+*
+IFDOC    CSECT
+*
+         STM   R14,R12,12(R13)     SAVE REGS IN CALLER'S SAVE AREA
+         LR    R12,R15             PRIME BASE REG
+         LA    R11,2048(,R12)      LET'S ADDRESS
+         LA    R11,2048(,R11)      - ANOTHER 4K
+         USING IFDOC,R12,R11       SET BASE REGISTER FOR PROGRAM
+         LR    R1,R13              COPY POINTER TO CALLER'S SA
+         L     R13,VCON$WA$        ADDRESS OF MY SAVE/WORK AREA
+         USING $$WA$$,R13          SEPARATE CSECT FOR REENTRANCY
+         ST    R1,SAVEAREA+4       BACK LINK TO CALLER'S SAVE AREA
+         ST    R13,8(,R1)          FORWARD LINK TO MY SAVE AREA
+*
+         B     0                   CREATE ABEND
+*
+$$WA$$   CSECT
+SAVEAREA DC    18F'0'              MY SAVE AREA
+IFDOC    CSECT
+*
+         PRINT GEN
+*
+&$MBL2   SETA  0
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+* TEST "FIRST" MACRO                                                  *
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+TS010    FIRST ,
+           AP    LEVEL1_PASS_COUNTER,=P'1'
+         ENDFIRST ,
+*
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+*                                                                     *
+*                   THE "IF" STATEMENT                                *
+*                                                                     *
+*      THE FORMAT OF THE STATEMENT IS:                                *
+*                                                                     *
+*        IF    (CLC,A,Z,NE)                                           *
+*                                                                     *
+* WHERE THE 'CLC' CAN BE ANY INSTRUCTION THAT SETS THE CONDITION      *
+* CODE, 'A' IS THE FIRST OPERAND, 'Z' THE SECOND, AND 'NE' CAN BE ANY *
+* CONDITION WHICH IS A MEMBER OF THE EXTENDED MNEMONIC BRANCH         *
+* INSTRUCTIONS, AND SETS THE CONDITION IN WHICH THE IF-GROUP IS TO    *
+* BE EXECUTED. EXAMPLES INCLUDE 'E', 'NE', 'NO', ETC. THE INSTRUCTION *
+* DOES NOT HAVE TO HAVE TWO OPERANDS. IN ANY CASE, THE OP-CODE MUST   *
+* BE THE FIRST POSITIONAL PARAMETER WITHIN THE PARENTHESES, AND THE   *
+* CONDITION, SUCH AS "E" OR "NE", MUST BE THE LAST.                   *
+*                                                                     *
+*      IF    (CLC,A,Z,NE)                                             *
+*                                                                     *
+*               ONE OR MORE INSTRUCTIONS                              *
+*               TO BE EXECUTED IF THE ABOVE                           *
+*               LOGIC GROUP EVALUATES TO "TRUE"                       *
+*                                                                     *
+*      ENDIF                                                          *
+*                                                                     *
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+*        1         2         3         4         5         6         7
+*...V....0....V....0....V....0....V....0....V....0....V....0....V....0.
+         IF    (CLC,A,Z,NE)
+           AP    LEVEL1_PASS_COUNTER,=P'1'
+         ENDIF
+*
+         LA    R10,A
+*        1         2         3         4         5         6         7
+*...V....0....V....0....V....0....V....0....V....0....V....0....V....0.
+         IF    (CLC,0(4,R10),=C'ZZZZ',NE)
+           AP    LEVEL1_PASS_COUNTER,=P'1'
+         ENDIF
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+* SAME - WITH A ONE OPERAND INSTRUCTION                               *
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+TS010    IF    (TS,SPECIAL,Z)
+           AP    LEVEL1_PASS_COUNTER,=P'1'
+         ENDIF  ,
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+* SAME - WITH A THREE OPERAND INSTRUCTION                             *
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         PACK  SHIFT_PACKED,=Z'1234567'
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+*  "SRP" INSTRUCTION "SHIFT AND ROUND DECIMAL" - THREE OPERANDS       *
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+SRP010   IF    (SRP,SHIFT_PACKED,5,3,P) "POSITIVE"
+           AP    LEVEL1_PASS_COUNTER,=P'1'
+         ENDIF  ,
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+* "RISBHGZ" - A FOUR OPERAND INSTRUCTION                              *
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         LG    R1,=X'0123456789ABCDEF'
+         LG    R2,=X'FEDCBA9876543210'
+RISBHGZ010 IF (RISBHGZ,R1,R2,16,31,Z)
+           AP    LEVEL1_PASS_COUNTER,=P'1'
+         ENDIF  ,
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+*  "RNSBG" INSTRUCTION  - FIVE OPERANDS                               *
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         LG    R5,=C'12345672'
+         LG    R6,=C'ABCDEFGC'
+RNSBG010 IF    (RNSBG,R5,R6,56,7,0,P) "POSITIVE"
+           AP    LEVEL1_PASS_COUNTER,=P'1'
+         ENDIF  ,
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+*                                                                     *
+*                 THE "ELSE" STATEMENT                                *
+*                                                                     *
+*      THE FORMAT OF THE STATEMENT IS:                                *
+*                                                                     *
+*        ELSE                                                         *
+*                                                                     *
+* IT MUST FOLLOW AN "IF" STATEMENT AND PRECEDE ITS MATCHING "ENDIF".  *
+* THE CODE THAT YOU PROVIDE BETWEEN THE "ELSE" AND THE "ENDIF" WILL   *
+* BE EXECUTED IF THE "IF" CLAUSE(S) RESULT IN "NOT TRUE". THE "ELSE"  *
+* IS OPTIONAL, AND IN ITS ABSENCE NO ACTION WILL BE TAKEN IN THE      *
+* EVENT THAT THE EXECUTION OF THE "IF" MACRO RESULTS IN "FALSE".      *
+*                                                                     *
+*      IF    ...                                                      *
+*                                                                     *
+*               ONE OR MORE INSTRUCTIONS                              *
+*               TO BE EXECUTED IF THE ABOVE                           *
+*               LOGIC GROUP EVALUATES TO "TRUE"                       *
+*                                                                     *
+*      ELSE                                                           *
+*                                                                     *
+*               ONE OR MORE INSTRUCTIONS                              *
+*               TO BE EXECUTED IF THE ABOVE                           *
+*               LOGIC GROUP EVALUATES TO "FALSE"                      *
+*                                                                     *
+*      ENDIF                                                          *
+*                                                                     *
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+*        1         2         3         4         5         6         7
+*...V....0....V....0....V....0....V....0....V....0....V....0....V....0.
+         IF    (CLI,EOFSW,C'N',E)
+           AP    LEVEL1_PASS_COUNTER,=P'1'
+         ELSE
+           AP    LEVEL1_ELSE_COUNTER,=P'1'
+         ENDIF
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+*                                                                     *
+*                 THE "ELSEIF" STATEMENT                              *
+*                                                                     *
+*      THE FORMAT OF THE STATEMENT IS:                                *
+*                                                                     *
+*        ELSEIF (CLC,A,Z,E)                                           *
+*                                                                     *
+* IT MUST FOLLOW AN "IF" STATEMENT AND PRECEDE ITS MATCHING "ENDIF".  *
+* IF THERE IS AN "ELSE" STATEMENT WITHIN THIS "IF" GROUP, THEN THE    *
+* "ELSEIF" MUST PRECEDE THE "ELSE".                                   *
+*                                                                     *
+* THE "ELSEIF" STATEMENT SUPPORTS THE SAME RICHNESS OF FUNCTION THAT  *
+* THE "IF" STATEMENT PROVIDES. THE "IF" STATEMENT'S FULL POWER IS     *
+* DESCRIBED IN SOME OF THE EXAMPLES THAT FOLLOW.                      *
+*                                                                     *
+* THE CODE THAT YOU PROVIDE BETWEEN THE "ELSEIF" AND THE FOLLOWING    *
+* "ELSE" OR "ENDIF" WILL BE EXECUTED IF THE "IF" CLAUSE(S) AND ALL    *
+* PREVIOUS "ELSEIF" STATEMENTS ARE FALSE, AND THE RESULT OF THIS      *
+* "ELSEIF" IS TRUE. THE "ELSEIF" IS OPTIONAL, MAY OCCUR MORE THAN     *
+* ONCE, AND MUST BE CODED BETWEEN THE "IF" AND THE "ELSE" OR "ENDIF". *
+*                                                                     *
+*      IF       ...                                                   *
+*                                                                     *
+*               ONE OR MORE INSTRUCTIONS                              *
+*               TO BE EXECUTED IF THE ABOVE                           *
+*               LOGIC GROUP EVALUATES TO "TRUE"                       *
+*                                                                     *
+*      ELSEIF   ...                                                   *
+*                                                                     *
+*               ONE OR MORE INSTRUCTIONS TO BE EXECUTED IF THIS       *
+*               "ELSEIF" EVALUATES TO "TRUE" AND THE PRECEDING "IF"   *
+*               AND ANY ADDITIONAL "ELSEIF" STATEMENT(S) ALL EVALUATE *
+*               TO "FALSE"                                            *
+*                                                                     *
+*      ENDIF                                                          *
+*                                                                     *
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+*        1         2         3         4         5         6         7
+*...V....0....V....0....V....0....V....0....V....0....V....0....V....0.
+         IF    (CLC,A,Z,NE)
+           AP    LEVEL1_PASS_COUNTER,=P'1'
+         ELSEIF (CLC,B,Z,E)
+           AP    LEVEL1_ELSEIF_COUNTER,=P'1'
+         ENDIF
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+*                                                                     *
+*                 BOTH "ELSEIF" AND "ELSE"                            *
+*                                                                     *
+* NOTE: IF AN "ELSE" IS USED IN THE SAME IF-GROUP AS ONE OR MORE      *
+*       "ELSEIF" STATEMENTS, THEN THE "ELSE" MUST BE THE LAST.        *
+*                                                                     *
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+*        1         2         3         4         5         6         7
+*...V....0....V....0....V....0....V....0....V....0....V....0....V....0.
+         IF    (CLC,A,Z,NE)
+           AP    LEVEL1_PASS_COUNTER,=P'1'
+         ELSEIF (CLC,B,Z,E)
+           AP    LEVEL1_ELSEIF_COUNTER,=P'1'
+         ELSEIF (CLC,C,Z,E)
+           AP    LEVEL1_ELSEIF_COUNTER,=P'1'
+         ELSEIF (CLC,D,Z,E)
+           AP    LEVEL1_ELSEIF_COUNTER,=P'1'
+         ELSE  ,
+           AP    LEVEL1_ELSE_COUNTER,=P'1'
+         ENDIF
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+*                                                                     *
+*                      THE "OR" CONJUNCTION                           *
+*                                                                     *
+*      TO EXECUTE THE IF-GROUP IF EITHER ONE OF TWO CONDITIONS IS     *
+* TRUE, THE FORMAT IS:                                                *
+*                                                           72        *
+*      IF    (CLC,A,Z,NE),OR,                                C        *
+*            (CLC,B,Z,NE)                                             *
+*                                                                     *
+*               ONE OR MORE INSTRUCTIONS                              *
+*               TO BE EXECUTED IF THE ABOVE                           *
+*               LOGIC GROUP EVALUATES TO "TRUE"                       *
+*                                                                     *
+*      ENDIF                                                          *
+*                                                                     *
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+*        1         2         3         4         5         6         7
+*...V....0....V....0....V....0....V....0....V....0....V....0....V....0.
+         IF    (CLC,A,Z,NE),OR,    NOTE "C" IN COLUMN 72 ============> C
+               (CLC,B,Z,NE)
+           AP    LEVEL1_PASS_COUNTER,=P'1'
+         ENDIF
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+*                                                                     *
+*                      THE "AND" CONJUNCTION                          *
+*                                                                     *
+*      TO EXECUTE THE IF-GROUP IF BOTH OF THE TWO CONDITIONS ARE      *
+* TRUE, THE FORMAT IS:                                                *
+*                                                                     *
+*      IF    (CLC,A,Z,NE),AND,(LTR,R15,R15,Z)                         *
+*                                                                     *
+*               ONE OR MORE INSTRUCTIONS                              *
+*               TO BE EXECUTED IF THE ABOVE                           *
+*               LOGIC GROUP EVALUATES TO "TRUE"                       *
+*                                                                     *
+*      ENDIF                                                          *
+*                                                                     *
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+*        1         2         3         4         5         6         7
+*...V....0....V....0....V....0....V....0....V....0....V....0....V....0.
+         IF    (CLC,A,Z,NE),AND,(LTR,R15,R15,Z)
+           AP    LEVEL1_PASS_COUNTER,=P'1'
+         ENDIF
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+*                                                                     *
+*      TO EXECUTE THE IF-GROUP IF THE FIRST AND SECOND LOGICAL        *
+* EXPRESSIONS ARE TRUE, OR THE THIRD EXPRESSION IS TRUE, THE FORMAT   *
+* IS:                                                                 *
+*                                                                     *
+*      IF    (CLC,A,Z,NE),AND,(CLC,B,Z,NE),OR,(CLC,C,Z,NE)            *
+*                                                                     *
+*               ONE OR MORE INSTRUCTIONS                              *
+*               TO BE EXECUTED IF THE ABOVE                           *
+*               LOGIC GROUP EVALUATES TO "TRUE".                      *
+*                                                                     *
+*      ENDIF                                                          *
+*                                                                     *
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+*        1         2         3         4         5         6         7
+*...V....0....V....0....V....0....V....0....V....0....V....0....V....0.
+         IF    (CLC,A,Z,NE),AND,(CLC,B,Z,NE),OR,(CLC,C,Z,NE)
+           AP    LEVEL1_PASS_COUNTER,=P'1'
+         ENDIF
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+*                                                                     *
+*      SINCE THE EVALUATION OF "AND" IN A LOGICAL EXPRESSION TAKES    *
+* PRECEDENCE OVER "OR", YOU MAY NEED TO OVERRIDE THAT PRECEDENCE TO   *
+* FORCE AN "OR" CONJUNCTION TO BE EVALUATED BEFORE AN "AND". YOU      *
+* WOULD ENCLOSE THE TWO EXPRESSIONS JOINED BY AN "OR" WITH AN         *
+* ADDITIONAL PAIR OF PARENTHESES. HERE THE BODY OF THE IF-GROUP WILL  *
+* EXECUTE IF THE FIRST PHRASE IS TRUE AND EITHER OF THE OTHER TWO     *
+* PHRASES IS TRUE.                                                    *
+*                             |                            |          *
+*                             |                            |          *
+*                             |                            |          *
+*                             V                            V          *
+*      IF    (CLC,A,Z,NE),AND,((CLC,B,Z,NE),OR,(CLC,C,Z,NE))          *
+*                                                                     *
+*               ONE OR MORE INSTRUCTIONS                              *
+*               TO BE EXECUTED IF THE ABOVE                           *
+*               LOGIC GROUP EVALUATES TO "TRUE"                       *
+*                                                                     *
+*      ENDIF                                                          *
+*                                                                     *
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+*        1         2         3         4         5         6         7
+*...V....0....V....0....V....0....V....0....V....0....V....0....V....0.
+*
+*                               V<<<< EXTRA PARENTHESES: >>>>V
+*                               V                            V
+         IF    (CLC,A,Z,NE),AND,((CLC,B,Z,NE),OR,(CLC,C,Z,NE))
+           AP    LEVEL1_PASS_COUNTER,=P'1'
+         ENDIF
+*
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+*                                                                     *
+*      IF (A OR B) AND (C OR D)                                       *
+*                                                                     *
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+*        1         2         3         4         5         6         7
+*...V....0....V....0....V....0....V....0....V....0....V....0....V....0.
+         IF    ((CLC,A,Z,NE),OR,(CLC,B,Z,NE)),AND,                     C
+               ((CLC,C,Z,NE),OR,(CLC,D,Z,NE))
+           AP    LEVEL1_PASS_COUNTER,=P'1'
+         ENDIF
+*
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+*                                                                     *
+*      IF YOU REQUIRE MORE COMPLEX LOGIC, YOU MAY NEST THE "OR"       *
+*      CONJUNCTIONS TO ANOTHER LEVEL. YOU MAY ADD EVEN ADDITIONAL     *
+*      LEVELS OF COMPLEXITY AS REQUIRED.                              *
+*                                                                     *
+*      IF A OR B AND ( C OR D AND (E OR F))                           *
+*                                                                     *
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+*        1         2         3         4         5         6         7
+*...V....0....V....0....V....0....V....0....V....0....V....0....V....0.
+         IF    (CLC,A,Z,E),OR,(CLC,B,Z,E),AND,                         C
+               ((CLC,C,Z,E),OR,(CLC,D,Z,E),AND,                        C
+               ((CLC,E,Z,E),OR,(CLC,F,Z,E)))
+           AP    LEVEL1_PASS_COUNTER,=P'1'
+         ENDIF
+*
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+*                                                                     *
+* IF A IS TRUE AND EITHER B OR C IS TRUE AND D IS TRUE  -  OR...      *
+* IF E IS TRUE AND EITHER F OR G IS TRUE AND H IS TRUE, THEN EXECUTE  *
+* THE CODE FOLLOWING THIS "IF" STATEMENT:                             *
+*                                                                     *
+*      IF     A & ( B | C) & D    |    E & (F | G) & H                *
+*                                                                     *
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+*        1         2         3         4         5         6         7
+*...V....0....V....0....V....0....V....0....V....0....V....0....V....0.
+         IF    (CLC,A,Z,E),AND,                                        C
+               ((CLC,B,Z,E),OR,(CLC,C,Z,E)),AND,                       C
+               (CLC,D,Z,E),OR,                                         C
+               (CLC,E,Z,E),AND,                                        C
+               ((CLC,F,Z,E),OR,(CLC,G,Z,E)),AND,                       C
+               (CLC,H,Z,E)
+           AP    LEVEL1_PASS_COUNTER,=P'1'
+         ENDIF
+*
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+*                                                                     *
+* IF A | B & ( C | D & ( E | F & G ) & H ) & J                        *
+*                                                                     *
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+*        1         2         3         4         5         6         7
+*...V....0....V....0....V....0....V....0....V....0....V....0....V....0.
+         IF    (CLC,A,Z,E),OR,(CLC,B,Z,E),AND,((CLC,C,Z,E),OR,         C
+               (CLC,D,Z,E),AND,((CLC,E,Z,E),OR,                        C
+               (CLC,F,Z,E),AND,(CLC,G,Z,E)),AND,                       C
+               (CLC,H,Z,E)),AND,(CLC,J,Z,E)
+           AP    LEVEL1_PASS_COUNTER,=P'1'
+         ENDIF
+*
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+*                                                                     *
+* IF A | B & ( C | D & ( E | F & G ) | H ) | J                        *
+*                                                                     *
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+*        1         2         3         4         5         6         7
+*...V....0....V....0....V....0....V....0....V....0....V....0....V....0.
+         IF    (CLC,A,Z,E),OR,(CLC,B,Z,E),AND,((CLC,C,Z,E),OR,         C
+               (CLC,D,Z,E),AND,((CLC,E,Z,E),OR,                        C
+               (CLC,F,Z,E),AND,(CLC,G,Z,E)),OR,                        C
+               (CLC,H,Z,E)),OR,(CLC,J,Z,E)
+           AP    LEVEL1_PASS_COUNTER,=P'1'
+         ENDIF
+*
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+*                                                                     *
+*                 THE NESTING OF MULTIPLE "IF" GROUPS                 *
+*                                                                     *
+* IF WITHIN THE CONFINES OF ONE "IF" GROUP YOU FIND IT NECESSARY TO   *
+* ADD ANOTHER LEVEL OF CONDITIONAL EXECUTION, THEN YOU MAY NEST ONE   *
+* "IF" GROUP WITHING ANOTHER. EACH SEPERATE "IF" STATEMENT WILL HAVE  *
+* ITS OWN LOGICAL CONSTRUCT, AND MUST BE TERMINATED WITH ITS OWN      *
+* "ENDIF" STATEMENT. THE "ELSEIF" AND "ENDIF" STATEMENTS ARE          *
+* SUPPORTED. YOU MAY INDENT THE NESTED "IF" GROUPS, BUT DOING THAT    *
+* WOULD BE FOR DOCUMENTATION PURPOSES ONLY.                           *
+*      IF    (CLC,A,Z,NE)                                             *
+*                                                                     *
+*               ONE OR MORE INSTRUCTIONS                              *
+*               TO BE EXECUTED IF THE ABOVE                           *
+*               LOGIC GROUP EVALUATES TO "TRUE"                       *
+*                                                                     *
+*        IF    (CLC,B,Z,NE)                                           *
+*                                                                     *
+*               ONE OR MORE INSTRUCTIONS                              *
+*               TO BE EXECUTED IF THE ABOVE (NESTED)                  *
+*               LOGIC GROUP EVALUATES TO "TRUE"                       *
+*                                                                     *
+*        ELSE                                                         *
+*                                                                     *
+*               ONE OR MORE INSTRUCTIONS                              *
+*               TO BE EXECUTED IF THE ABOVE (NESTED)                  *
+*               LOGIC GROUP EVALUATES TO "FALSE"                      *
+*                                                                     *
+*        ENDIF                                                        *
+*                                                                     *
+*      ENDIF                                                          *
+*                                                                     *
+* THE "IF" MACRO SUPPORTS THE NESTING OF AS MANY "IF" GROUPS AS YOU   *
+* REQUIRE TO SUPPORT YOUR LOGIC. HOW MANY LEVELS CAN YOU ACTUALLY     *
+* KEEP TRACK OF?                                                      *
+*                                                                     *
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+*        1         2         3         4         5         6         7
+*...V....0....V....0....V....0....V....0....V....0....V....0....V....0.
+         IF    (CLC,A,Z,NE)
+           AP    LEVEL1_PASS_COUNTER,=P'1'
+           IF    (CLC,B,Z,NE)
+             AP    LEVEL2_PASS_COUNTER,=P'1'
+           ELSE
+             AP    LEVEL2_ELSE_COUNTER,=P'1'
+           ENDIF
+         ENDIF
+*
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+*                                                                     *
+*       ANOTHER EXAMPLE OF THE NESTING OF MULTIPLE "IF" GROUPS        *
+*                                                                     *
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+*
+*        1         2         3         4         5         6         7
+*...V....0....V....0....V....0....V....0....V....0....V....0....V....0.
+         IF    (CLC,A,Z,E)
+           AP    LEVEL1_PASS_COUNTER,=P'1'
+           IF    (CLC,B,Z,E)
+             AP    LEVEL2_PASS_COUNTER,=P'1'
+             IF    (CLC,C,Z,E)
+               AP    LEVEL3_PASS_COUNTER,=P'1'
+             ELSEIF (CLC,D,Z,E)
+               AP    LEVEL3_ELSEIF_COUNTER,=P'1'
+             ELSEIF (CLC,E,Z,E)
+               AP    LEVEL3_ELSEIF_COUNTER,=P'1'
+             ELSEIF (CLC,F,Z,E)
+               AP    LEVEL3_ELSEIF_COUNTER,=P'1'
+             ELSE
+               AP    LEVEL3_ELSE_COUNTER,=P'1'
+             ENDIF
+           ELSEIF (CLC,G,Z,E)
+             AP    LEVEL2_ELSEIF_COUNTER,=P'1'
+           ELSE
+             AP    LEVEL2_ELSE_COUNTER,=P'1'
+           ENDIF
+         ELSEIF  (CLC,H,Z,E)
+           AP    LEVEL1_ELSE_COUNTER,=P'1'
+         ELSE
+           AP    LEVEL1_PASS_COUNTER,=P'1'
+         ENDIF
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+*                                                                     *
+*      THESE FOLLOWING STATEMENTS ARE NORMAL zOS TERMINATION.         *
+*                                                                     *
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+*
+.QUIT    ANOP
+         L     R13,SAVEAREA+4      ADDRESS OF CALLER'S SAVE AREA
+         LM    R14,R12,12(R13)     RESTORE R14 WRAPPED AROUND TO R12
+         DROP  R12                 NO LONGER VALID
+         SLR   R15,R15             SET RETURN CODE TO ZERO
+         BR    R14                 RETURN TO CALLER
+*
+VCON$WA$ DC    V($$WA$$)
+*
+         LTORG
+EOFSW    DC    C'N'
+         DS    0D
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+*                                                                     *
+*      THESE FOLLOWING STATEMENTS DEFINE VARIABLES REQUIRED.          *
+*                                                                     *
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+LEVEL1_PASS_COUNTER DC PL4'0'
+LEVEL1_ELSEIF_COUNTER DC PL4'0'
+LEVEL1_ELSE_COUNTER DC PL4'0'
+LEVEL1_FAIL_COUNTER DC PL4'0'
+LEVEL2_PASS_COUNTER DC PL4'0'
+LEVEL2_ELSEIF_COUNTER DC PL4'0'
+LEVEL2_ELSE_COUNTER DC PL4'0'
+LEVEL2_FAIL_COUNTER DC PL4'0'
+LEVEL3_PASS_COUNTER DC PL4'0'
+LEVEL3_ELSEIF_COUNTER DC PL4'0'
+LEVEL3_ELSE_COUNTER DC PL4'0'
+SHIFT_PACKED DC  PL4'1234567'
+SPECIAL  DC    X'C0'
+A        DC    C'AAAA'
+B        DC    C'BBBB'
+C        DC    C'CCCC'
+D        DC    C'DDDD'
+E        DC    C'EEEE'
+F        DC    C'FFFF'
+G        DC    C'GGGG'
+H        DC    C'HHHH'
+I        DC    C'IIII'
+J        DC    C'JJJJ'
+K        DC    C'KKKK'
+L        DC    C'LLLL'
+Z        DC    C'ZZZZ'
+         END   IFDOC
+./ ADD NAME=DOTEST
+         AGO   .SKIP
+* Copyright (C) <2021>  Daniel H. Snyder
+*                       ALL RIGHTS RESERVED
+*                       Daniel.H.Snyder@proton.com
+*
+.SKIP    ANOP
+         TITLE 'EXAMPLES OF "IF" LOGIC MACRO INSTRUCTIONS'
+*
+R0       EQU   0
+R1       EQU   1       STANDARD
+R2       EQU   2        EQUATES
+R3       EQU   3         FOR
+R4       EQU   4          GENERAL
+R5       EQU   5           PURPOSE
+R6       EQU   6            REGISTERS.
+R7       EQU   7             YOU
+R8       EQU   8              MIGHT
+R9       EQU   9               AS
+R10      EQU   10               WELL
+R11      EQU   11                JUST
+R12      EQU   12                 GET
+R13      EQU   13                  USED
+R14      EQU   14                   TO
+R15      EQU   15                    IT.
+*
+DODOC    CSECT
+         COPY  $MGBLDEF
+*
+         STM   R14,R12,12(R13)     SAVE REGS IN CALLER'S SAVE AREA
+         LR    R12,R15             PRIME BASE REG
+         LA    R11,2048(,R12)      LET'S ADDRESS
+         LA    R11,2048(,R11)      - ANOTHER 4K
+         USING DODOC,R12,R11       SET BASE REGISTER FOR PROGRAM
+         LR    R1,R13              COPY POINTER TO CALLER'S SA
+         L     R13,VCON$WA$        ADDRESS OF MY SAVE/WORK AREA
+         IF    (CLR,R1,R1,NE)
+VCON$WA$ DC    V($$WA$$)
+         ENDIF
+         USING $$WA$$,R13          SEPARATE CSECT FOR REENTRANCY
+         ST    R1,SAVEAREA+4       BACK LINK TO CALLER'S SAVE AREA
+         ST    R13,8(,R1)          FORWARD LINK TO MY SAVE AREA
+*
+$$WA$$   CSECT
+SAVEAREA DC    18F'0'              MY SAVE AREA
+DODOC    CSECT
+*
+         OPEN  (SYSPRINT,OUTPUT)
+*
+         PRINT GEN
+*
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+*                                                                     *
+*                      THE "DO" STATEMENT                             *
+*                                                                     *
+*      The "DO" MACRO PROVIDES A LOOPING STRUCTURE FOR PERFORMING     *
+*      MULTIPLE PASSES THROUGH THE DESIRED CODE. THE "DO" HAS         *
+*      ADDITIONAL PARAMETERS OVER THE "IF", BUT USES THE SAME         *
+*      STRUCTURE FOR CREATING THE LOGICAL REQUIREMENTS AS THE "IF"    *
+*      MACRO (IT CALLS THE "IF" MACRO TO DO THE PROCESSING OF YOUR    *
+*      LOGIC). THE DIFFERENCE IS THAT AN EXTRA SET OF PARENTHESES     *
+*      MUST SURROUND YOUR ENTIRE LOGIC EXPRESSIONS, DUE TO THE        *
+*      SPECIAL WAY OF HANDLING POSITIONAL PARAMETERS USED BY THE "IF" *
+*      MACRO                                                          *
+*                                                                     *
+*      THE TWO SIMPLEST EXAMPLES ARE THE "DO WHILE" AND THE           *
+*      "DO UNTIL":                                                    *
+*                                                                     *
+*       DO UNTIL=((LTR,R1,R1,NZ))                                     *
+*                                                                     *
+*       DO WHILE=((LTR,R1,R1,NZ))                                     *
+*                                                                     *
+*       THE ONLY OTHER AVAILABLE PARAMETER IS THE "TEST=". "BEFORE"   *
+*       IS THE DEFAULT. "TEST=AFTER" CAUSES THE DO-GROUP TO BE        *
+*       PERFORMED ONE TIME BEFORE THE FIRST TEST IS MADE.             *
+*                                                                     *
+*       DO UNTIL=((LTR,R1,R1,NZ)),TEST=BEFORE                         *
+*                                                                     *
+*       DO WHILE=((LTR,R1,R1,NZ)),TEST=BEFORE                         *
+*                                                                     *
+*       DO UNTIL=((LTR,R1,R1,NZ)),TEST=AFTER                          *
+*                                                                     *
+*       DO WHILE=((LTR,R1,R1,NZ)),TEST=AFTER                          *
+*                                                                     *
+*       THE DO-GROUP MUST BE TERMINATED WITH AN "ENDDO" STATEMENT:    *
+*                                                                     *
+*       FOLLOWING THE STATEMENTS TO BE EXECUTED WHEN THE "DO"         *
+*       STATEMENT SUCCEEDS, THERE SHOULD BE AN "ENDO" TO TERMINATE    *
+*       THE LOGIC.                                                    *
+*                                                                     *
+*       SPECIAL NOTE: THE "ENDIF" AND "ENDO" ARE INTERCHANGEABLE.     *
+*       THEY ARE BOTH PROVIDED FOR DOCUMENTATION PURPOSES.            *
+*                                                                     *
+*       DO UNTIL=((LTR,R1,R1,NZ)),TEST=AFTER                          *
+*                                                                     *
+*                      ONE                                            *
+*                    OR MORE                                          *
+*                  INSTRUCTIONS                                       *
+*                                                                     *
+*       ENDDO                                                         *
+*                                                                     *
+*       THE DEFAULT FOR WHEN THE TEST IS PERFORMED IS BEFORE THE      *
+*       BODY OF THE DO-GROUP IS RUN FOR THE FIRST TIME. IF THE LOGIC  *
+*       TEST(S) FAIL, THEN THE INSTUCTIONS IN THE BODY OF THE         *
+*       ARE BYPASSED ENTIRELY.                                        *
+*                                                                     *
+*       IF YOU NEED THE DO-GROUP TO BE PERFORMED AT LEAST ONCE, THEN  *
+*       CODE THE "TEST=AFTER" PARAMETER. THE DEFAULT FOR "TEST" IS    *
+*       "BEFORE", SO IF THAT IS WHAT YOU WANT, THEN YOU DO NOT NEED   *
+*       TO SPECIFY IT.                                                *
+*                                                                     *
+*       IF YOU SPECIFY "BEFORE", OR DEFAULT TO IT, THEN THE LOGICAL   *
+*       TEST IS DETERMINED BEFORE THE BODY OF CODE IS EXECUTED, AND   *
+*       IF THAT TEST FAILS THEN THE BODY OF CODE IS BYPASSED WITHOUT  *
+*       BEING EXECUTED EVEN ONCE. IF YOU SPECIFY "AFTER", THEN THE    *
+*       CODE IS EXECUTED ONE TIME BEFORE THE LOGICAL TEST IS APPLIED. *
+*       IF THAT TEST FAILS, THEN THAT ONE TIME IS THE ONLY TIME THAT  *
+*       THAT CODE IS EXECUTED.                                        *
+*                                                                     *
+*       NOTE THAT THE ALLOWABLE STUCTURE OF THE CONDITIONAL           *
+*       PARAMETERS INCLUDES ALL OF THE POWER OF THOSE OF THE          *
+*       "IF" MACRO (NOTE ALSO THE REQUIRED ADDITIONAL SET OF          *
+*       PARENTHESES SURROUNDING THE ENTIRE LOGIC STRUCTURE.)          *
+*                                                                     *
+*       DO    WHILE=((LTR,R1,R1,NZ),AND,                     C        *
+*             ((CLC,B,Z,NE),OR,                              C        *
+*             (CLC,C,Z,E))),                                 C        *
+*             TEST=AFTER                                              *
+*                                                                     *
+*                      ONE                                            *
+*                    OR MORE                                          *
+*                  INSTRUCTIONS                                       *
+*                                                                     *
+*       ENDDO                                                         *
+*                                                                     *
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+* DO WHILE                                                            *
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         PACK  PACK1,=Z'0'
+         MVC   TESTNBR,=C'TEST010A'
+TEST010A DO    WHILE=((CP,PACK1,=P'3',NH))
+           AP    PACK1,=P'1'
+           UNPK  COUNTER,PACK1
+           OI    COUNTER+3,X'F0'
+           PUT   SYSPRINT,OUTPUT
+         ENDDO ,
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+* DO UNTIL                                                            *
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         PACK  PACK1,=Z'0'
+         MVC   TESTNBR,=C'TEST020A'
+TEST020A DO    UNTIL=((CP,PACK1,=P'3',E))
+           AP    PACK1,=P'1'
+           UNPK  COUNTER,PACK1
+           OI    COUNTER+3,X'F0'
+           PUT   SYSPRINT,OUTPUT
+         ENDDO ,
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+* DO WHILE WITH TEST BEFORE                                           *
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         PACK  PACK1,=Z'0'
+         MVC   TESTNBR,=C'TEST030A'
+TEST030A DO    WHILE=((CP,PACK1,=P'3',NH)),TEST=BEFORE
+           AP    PACK1,=P'1'
+           UNPK  COUNTER,PACK1
+           OI    COUNTER+3,X'F0'
+           PUT   SYSPRINT,OUTPUT
+         ENDDO ,
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+* DO UNTIL WITH TEST BEFORE                                           *
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         PACK  PACK1,=Z'0'
+         MVC   TESTNBR,=C'TEST040A'
+TEST040A DO    UNTIL=((CP,PACK1,=P'3',E)),TEST=BEFORE
+           AP    PACK1,=P'1'
+           UNPK  COUNTER,PACK1
+           OI    COUNTER+3,X'F0'
+           PUT   SYSPRINT,OUTPUT
+         ENDDO ,
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+* DO WHILE WITH TEST AFTER                                            *
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         PACK  PACK1,=Z'0'
+         MVC   TESTNBR,=C'TEST050A'
+TEST050A DO    WHILE=((CP,PACK1,=P'3',L)),TEST=AFTER
+           AP    PACK1,=P'1'
+           UNPK  COUNTER,PACK1
+           OI    COUNTER+3,X'F0'
+           PUT   SYSPRINT,OUTPUT
+         ENDDO ,
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+* DO UNTIL WITH TEST AFTER                                            *
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         PACK  PACK1,=Z'-1'
+         MVC   TESTNBR,=C'TEST060A'
+TEST060A DO    UNTIL=((CP,PACK1,=P'0',E)),TEST=AFTER
+           AP    PACK1,=P'1'
+           UNPK  COUNTER,PACK1
+           OI    COUNTER+3,X'F0'
+           PUT   SYSPRINT,OUTPUT
+         ENDDO ,
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+*                                                                     *
+*      THESE FOLLOWING STATEMENTS ARE NORMAL zOS TERMINATION.         *
+*                                                                     *
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+*
+         CLOSE SYSPRINT
+         L     R13,SAVEAREA+4      ADDRESS OF CALLER'S SAVE AREA
+         LM    R14,R12,12(R13)     RESTORE R14 WRAPPED AROUND TO R12
+         DROP  R12                 NO LONGER VALID
+         SLR   R15,R15             SET RETURN CODE TO ZERO
+         BR    R14                 RETURN TO CALLER
+*
+$$WA$$   CSECT
+         LTORG
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+SYSPRINT DCB   DDNAME=SYSPRINT,RECFM=FBA,LRECL=133,MACRF=PM,           C
+               DSORG=PS
+PACK1    DC    PL4'0'
+ZONED1   DC    Z'0000'
+OUTPUT   DC    CL133' '
+         ORG   OUTPUT
+         DC    C' '
+TESTNBR  DC    CL8' '
+         DC    C' '
+COUNTER  DC    ZL4'0'
+         ORG   OUTPUT+133
+*
+EOFSW    DC    C'N'                SET END-OF-FILE SWITCH TO 'Y' AT EOF
+PL5      DC    PL5'7'
+         DC    0F'0'
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+*                                                                     *
+*      THESE FOLLOWING STATEMENTS DEFINE VARIABLES REQUIRED.          *
+*                                                                     *
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+LEVEL_ONE_PASS_COUNTER DC PL4'0'
+A        DC    C'AAAA'
+B        DC    C'BBBB'
+C        DC    C'CCCC'
+D        DC    C'DDDD'
+E        DC    C'EEEE'
+F        DC    C'FFFF'
+G        DC    C'GGGG'
+H        DC    C'HHHH'
+Z        DC    C'ZZZZ'
+TEMP     DC    C'TEMP'
+LOOP_COUNTER DC PL4'0'             FOR TEST OF "DO UNTIL"
+PACKED_ONE DC  PL4'1'              FOR TEST OF "DO UNTIL"
+DODOC    CSECT
+         END   DODOC
+./ ADD NAME=DODOC
+         AGO   .SKIP
+* Copyright (C) <2021>  Daniel H. Snyder
+*                       ALL RIGHTS RESERVED
+*                       Daniel.H.Snyder@proton.com
+*
+.SKIP    ANOP
+         TITLE 'EXAMPLES OF "IF" LOGIC MACRO INSTRUCTIONS'
+*
+R0       EQU   0
+R1       EQU   1       STANDARD
+R2       EQU   2        EQUATES
+R3       EQU   3         FOR
+R4       EQU   4          GENERAL
+R5       EQU   5           PURPOSE
+R6       EQU   6            REGISTERS.
+R7       EQU   7             YOU
+R8       EQU   8              MIGHT
+R9       EQU   9               AS
+R10      EQU   10               WELL
+R11      EQU   11                JUST
+R12      EQU   12                 GET
+R13      EQU   13                  USED
+R14      EQU   14                   TO
+R15      EQU   15                    IT.
+*
+DODOC    CSECT
+         COPY  $MGBLDEF
+*
+         USING *,R12               SET BASE REGISTER FOR PROGRAM
+         STM   R14,R12,12(R13)     SAVE REGS IN CALLER'S SAVE AREA
+         LR    R12,R15             PRIME BASE REG
+         LA    R14,SAVEAREA        ADDRESS OF MY SAVE AREA
+         ST    R13,SAVEAREA+4      BACK LINK TO CALLER'S SAVE AREA
+         ST    R14,8(,R13)         FORWARD LINK TO MY SAVE AREA
+*
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+*                                                                     *
+*                      THE "DO" STATEMENT                             *
+*                                                                     *
+*      The "DO" MACRO PROVIDES A LOOPING STRUCTURE FOR PERFORMING     *
+*      MULTIPLE PASSES THROUGH THE DESIRED CODE. THE "DO" HAS         *
+*      ADDITIONAL PARAMETERS OVER THE "IF", BUT USES THE SAME         *
+*      STRUCTURE FOR CREATING THE LOGICAL REQUIREMENTS AS THE "IF"    *
+*      MACRO (IT CALLS THE "IF" MACRO TO DO THE PROCESSING OF YOUR    *
+*      LOGIC). THE DIFFERENCE IS THAT AN EXTRA SET OF PARENTHESES     *
+*      MUST SURROUND YOUR ENTIRE LOGIC EXPRESSIONS, DUE TO THE        *
+*      SPECIAL WAY OF HANDLING POSITIONAL PARAMETERS USED BY THE "IF" *
+*      MACRO                                                          *
+*                                                                     *
+*      THE TWO SIMPLEST EXAMPLES ARE THE "DO WHILE" AND THE           *
+*      "DO UNTIL":                                                    *
+*                                                                     *
+*       DO UNTIL=((LTR,R1,R1,NZ))                                     *
+*                                                                     *
+*       DO WHILE=((LTR,R1,R1,NZ))                                     *
+*                                                                     *
+*       THE ONLY OTHER AVAILABLE PARAMETER IS THE "TEST=". "BEFORE"   *
+*       IS THE DEFAULT. "TEST=AFTER" CAUSES THE DO-GROUP TO BE        *
+*       PERFORMED ONE TIME BEFORE THE FIRST TEST IS MADE.             *
+*                                                                     *
+*       DO UNTIL=((LTR,R1,R1,NZ)),TEST=BEFORE                         *
+*                                                                     *
+*       DO WHILE=((LTR,R1,R1,NZ)),TEST=BEFORE                         *
+*                                                                     *
+*       DO UNTIL=((LTR,R1,R1,NZ)),TEST=AFTER                          *
+*                                                                     *
+*       DO WHILE=((LTR,R1,R1,NZ)),TEST=AFTER                          *
+*                                                                     *
+*       THE DO-GROUP MUST BE TERMINATED WITH AN "ENDDO" STATEMENT:    *
+*                                                                     *
+*       FOLLOWING THE STATEMENTS TO BE EXECUTED WHEN THE "DO"         *
+*       STATEMENT SUCCEEDS, THERE SHOULD BE AN "ENDO" TO TERMINATE    *
+*       THE LOGIC.                                                    *
+*                                                                     *
+*       SPECIAL NOTE: THE "ENDIF" AND "ENDO" ARE INTERCHANGEABLE.     *
+*       THEY ARE BOTH PROVIDED FOR DOCUMENTATION PURPOSES.            *
+*                                                                     *
+*       DO UNTIL=((LTR,R1,R1,NZ)),TEST=AFTER                          *
+*                                                                     *
+*                      ONE                                            *
+*                    OR MORE                                          *
+*                  INSTRUCTIONS                                       *
+*                                                                     *
+*       ENDDO                                                         *
+*                                                                     *
+*       THE DEFAULT FOR WHEN THE TEST IS PERFORMED IS BEFORE THE      *
+*       BODY OF THE DO-GROUP IS RUN FOR THE FIRST TIME. IF THE LOGIC  *
+*       TEST(S) FAIL, THEN THE INSTUCTIONS IN THE BODY OF THE         *
+*       ARE BYPASSED ENTIRELY.                                        *
+*                                                                     *
+*       IF YOU NEED THE DO-GROUP TO BE PERFORMED AT LEAST ONCE, THEN  *
+*       CODE THE "TEST=AFTER" PARAMETER. THE DEFAULT FOR "TEST" IS    *
+*       "BEFORE", SO IF THAT IS WHAT YOU WANT, THEN YOU DO NOT NEED   *
+*       TO SPECIFY IT.                                                *
+*                                                                     *
+*       IF YOU SPECIFY "BEFORE", OR DEFAULT TO IT, THEN THE LOGICAL   *
+*       TEST IS DETERMINED BEFORE THE BODY OF CODE IS EXECUTED, AND   *
+*       IF THAT TEST FAILS THEN THE BODY OF CODE IS BYPASSED WITHOUT  *
+*       BEING EXECUTED EVEN ONCE. IF YOU SPECIFY "AFTER", THEN THE    *
+*       CODE IS EXECUTED ONE TIME BEFORE THE LOGICAL TEST IS APPLIED. *
+*       IF THAT TEST FAILS, THEN THAT ONE TIME IS THE ONLY TIME THAT  *
+*       THAT CODE IS EXECUTED.                                        *
+*                                                                     *
+*       NOTE THAT THE ALLOWABLE STUCTURE OF THE CONDITIONAL           *
+*       PARAMETERS INCLUDES ALL OF THE POWER OF THOSE OF THE          *
+*       "IF" MACRO (NOTE ALSO THE REQUIRED ADDITIONAL SET OF          *
+*       PARENTHESES SURROUNDING THE ENTIRE LOGIC STRUCTURE.)          *
+*                                                                     *
+*       DO    WHILE=((LTR,R1,R1,NZ),AND,                     C        *
+*             ((CLC,B,Z,NE),OR,                              C        *
+*             (CLC,C,Z,E))),                                 C        *
+*             TEST=AFTER                                              *
+*                                                                     *
+*                      ONE                                            *
+*                    OR MORE                                          *
+*                  INSTRUCTIONS                                       *
+*                                                                     *
+*       ENDDO                                                         *
+*                                                                     *
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+* DO WHILE                                                            *
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         PACK  COUNTER,=Z'10'
+TESTDO01 DO    WHILE=((SP,COUNTER,=P'1',NZ))
+           AP    LEVEL_ONE_PASS_COUNTER,=P'1' BUMP COUNTER
+         ENDDO ,
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+* DO UNTIL                                                            *
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         PACK  COUNTER,=Z'10'
+TESTDO02 DO    UNTIL=((SP,COUNTER,=P'1',E),AND,                        C
+               (CLC,B,TEMP,E))   DO UNTIL BOTH
+           MVC   TEMP,=C'BBBB'
+           AP    LEVEL_ONE_PASS_COUNTER,=P'1' BUMP COUNTER
+         ENDDO ,
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+* DO WHILE WITH TEST AFTER                                            *
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         PACK  COUNTER,=Z'10'
+TESTDO03 DO    WHILE=((SP,COUNTER,=P'1',NZ)),TEST=AFTER
+           AP    LEVEL_ONE_PASS_COUNTER,=P'1' BUMP COUNTER
+         ENDDO ,
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+* IF THE THIRD PHRASE IS TRUE AND EITHER OF THE FIRST TWO PHRASES ARE *
+* TRUE, THEN CONTINUE EXECUTING THE DO-LOOP.                          *
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+         PACK  COUNTER,=Z'10'
+TESTDO04 DO    WHILE=(((SP,COUNTER,=P'1',NZ),OR,                       C
+               (CLC,B,Z,E)),AND,(CLC,C,TEMP,E))
+           AP    LEVEL_ONE_PASS_COUNTER,=P'1' BUMP COUNTER
+           MVC   TEMP,=C'CCCC'
+         ENDDO ,
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+*                                                                     *
+* DO UNTIL A IS TRUE AND EITHER B OR C IS TRUE AND D IS TRUE -  OR... *
+* E IS TRUE AND EITHER F OR G IS TRUE AND H IS TRUE, THEN END THE     *
+* PERFORMING OF THE DO-LOOP AND BRANCH TO THE "ENDDO".                *
+*                                                                     *
+* IF A & ( B | C) & D | E & (F | G) & H                               *
+*                                                                     *
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+*        1         2         3         4         5         6         7
+*...V....0....V....0....V....0....V....0....V....0....V....0....V....0.
+         DO    UNTIL=((CLC,A,Z,E),AND,((CLC,B,Z,E),OR,(CLC,C,Z,E)),AND,C
+               (CLC,D,Z,E),OR,(CLC,E,Z,E),AND,((CLC,F,Z,E),OR,         C
+               (CLC,G,Z,E)),AND,(CLC,H,Z,E))
+           AP    LEVEL_ONE_PASS_COUNTER,=P'1' BUMP COUNTER
+           SVC 13
+         ENDDO
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+*                                                                     *
+*      THESE FOLLOWING STATEMENTS ARE NORMAL zOS TERMINATION.         *
+*                                                                     *
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+*
+         L     R13,SAVEAREA+4      ADDRESS OF CALLER'S SAVE AREA
+         LM    R14,R12,12(R13)     RESTORE R14 WRAPPED AROUND TO R12
+         DROP  R12                 NO LONGER VALID
+         SLR   R15,R15             SET RETURN CODE TO ZERO
+         BR    R14                 RETURN TO CALLER
+*
+         LTORG
+SAVEAREA DC    18F'0'
+EOFSW    DC    C'N'                SET END-OF-FILE SWITCH TO 'Y' AT EOF
+PL5      DC    PL5'7'
+         DC    0F'0'
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+*                                                                     *
+*      THESE FOLLOWING STATEMENTS DEFINE VARIABLES REQUIRED.          *
+*                                                                     *
+*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+LEVEL_ONE_PASS_COUNTER DC PL4'0'
+A        DC    C'AAAA'
+B        DC    C'BBBB'
+C        DC    C'CCCC'
+D        DC    C'DDDD'
+E        DC    C'EEEE'
+F        DC    C'FFFF'
+G        DC    C'GGGG'
+H        DC    C'HHHH'
+Z        DC    C'ZZZZ'
+TEMP     DC    C'TEMP'
+COUNTER  DC    PL4'10'
+LOOP_COUNTER DC PL4'0'             FOR TEST OF "DO UNTIL"
+PACKED_ONE DC  PL4'1'              FOR TEST OF "DO UNTIL"
+         END   DODOC
+./ ENDUP
+/*
